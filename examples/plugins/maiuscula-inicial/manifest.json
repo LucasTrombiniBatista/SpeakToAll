@@ -1,0 +1,9 @@
+{
+  "id": "maiuscula-inicial",
+  "name": "Maiúscula inicial",
+  "version": "1.0.0",
+  "minAppVersion": "0.1.0",
+  "author": "SpeakToAll",
+  "description": "Começa cada frase ditada com letra maiúscula e termina com ponto final.",
+  "permissions": ["text"]
+}

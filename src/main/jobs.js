@@ -14,9 +14,10 @@ class Jobs extends EventEmitter {
     this.current = null;
   }
 
-  init({ notes, transcribeFn, tmpDir }) {
+  init({ notes, transcribeFn, tmpDir, processText = async (t) => t }) {
     this.notes = notes;
     this.transcribeFn = transcribeFn;
+    this.processText = processText;
     this.tmpDir = tmpDir;
     fs.mkdirSync(tmpDir, { recursive: true });
   }
@@ -40,7 +41,7 @@ class Jobs extends EventEmitter {
     fs.mkdirSync(dir, { recursive: true });
     const wavPath = path.join(dir, `${id}.wav`);
     fs.writeFileSync(wavPath, wavBuffer);
-    const job = { id, name: title, status: 'queued', progress: 0, segments: [], wavPath, keepAudio: keep, handle: null, cancelled: false };
+    const job = { id, name: title, source, language, status: 'queued', progress: 0, segments: [], wavPath, keepAudio: keep, handle: null, cancelled: false };
     this.jobs.set(id, job);
     this.queue.push(job);
     this._emit(job);
@@ -61,8 +62,9 @@ class Jobs extends EventEmitter {
     return true;
   }
 
-  _persist(job, final) {
-    const text = job.segments.map((s) => String(s.text || '').trim()).filter(Boolean).join(' ');
+  _joined(job) { return job.segments.map((s) => String(s.text || '').trim()).filter(Boolean).join(' '); }
+
+  _persist(job, final, text = this._joined(job)) {
     const patch = { segments: job.segments, text };
     if (final && job.keepAudio) patch.audioFile = job.wavPath;
     try { this.notes.update(job.id, patch); } catch {}
@@ -98,8 +100,8 @@ class Jobs extends EventEmitter {
       const res = await job.handle.promise;
       if (job.cancelled) throw new Error('cancelled');
       if (res && Array.isArray(res.segments) && res.segments.length) job.segments = res.segments;
-      this._persist(job, true);
-      if (res && res.text && !job.segments.length) { try { this.notes.update(job.id, { text: res.text }); } catch {} }
+      const raw = this._joined(job) || (res && res.text) || '';
+      this._persist(job, true, await this.processText(raw, { source: job.source, language: job.language }));
       this._finish(job, 'done');
     } catch (e) {
       this._persist(job, true);

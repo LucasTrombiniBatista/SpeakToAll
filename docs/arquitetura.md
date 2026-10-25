@@ -49,7 +49,7 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 3. **Gravação** — manda `{type:'start'}` ao overlay, que aparece com `showInactive()` (não rouba o foco do app de destino) e grava em 16 kHz.
 4. **Soltar** — `stop` → overlay codifica WAV PCM 16-bit mono e envia por `overlay:audio`.
 5. **Transcrição** — áudios < 350 ms são descartados; o resto vai para `engine.transcribe` (POST `/inference`).
-6. **Limpeza** — `cleanTranscript` remove `[BLANK_AUDIO]`, `(música)`, `♪` e junta tudo numa linha (evita Enter acidental em chats).
+6. **Limpeza** — `cleanTranscript` remove `[BLANK_AUDIO]`, `(música)`, `♪` e junta tudo numa linha (evita Enter acidental em chats). Em seguida o texto passa pelos processadores dos plugins ativos (`plugins.processText`).
 7. **Injeção** — `injector.inject(text, mode)`:
    - `paste`: salva clipboard → escreve texto → 80 ms → Ctrl+V → restaura após 350 ms.
    - `type`: digita caractere a caractere com `KEYEVENTF_UNICODE`.
@@ -73,6 +73,9 @@ Tudo em `%APPDATA%\speaktoall\`:
 | `bin/whisper/` | Binários do whisper.cpp + `flavor.txt` (cpu/cuda) |
 | `models/ggml-<id>.bin` | Modelos baixados do Hugging Face |
 | `tmp/` | WAVs temporários de jobs |
+| `plugins/<id>/` | Plugins instalados (ver [plugins.md](plugins.md)) |
+| `plugin-data/<id>.json` | Dados salvos por cada plugin |
+| `plugins-catalog.json` | Último catálogo da loja |
 
 ## Segurança
 

@@ -55,7 +55,14 @@ Fila **serial** de transcrição de arquivos. `init({notes, transcribeFn, tmpDir
 `summarize(note, settings)` → `{title, summary}` (JSON pedido ao modelo, extraído de forma robusta). `chat(note, messages, settings, onChunk, signal)` → streaming SSE; erros chegam como `onChunk({error})`.
 
 ### `tray.js`
-Ícone desenhado em código (barras do logo; vermelho ao gravar). Menu: Abrir, Gravar/Parar, Sair. `setRecording(bool)`.
+Ícone desenhado em código (barras do logo; vermelho ao gravar). Menu: Abrir, Gravar/Parar, Plugins (comandos), Sair. `setRecording(bool)`, `setPluginCommands(cmds)`.
+
+### `plugins/`
+Sistema de plugins (ver [plugins.md](plugins.md)).
+- `plugin.js`: classe base `Plugin` (`addTextProcessor`, `addCommand`, `registerEvent`, `registerInterval`, `loadData`/`saveData`, `notify`), com limpeza automática.
+- `api.js`: `createApi()` monta o objeto `app` entregue aos plugins.
+- `index.js`: singleton. `init`, `scan`, `enable`/`disable`/`reload`, `list`, `commands`, `runCommand`, `processText(text, ctx)`, `dispatch(event, payload)`, `setBlocked(ids)`. Emite `'changed'`. Exporta `validateManifest` e `cmpVersion`.
+- `store.js`: `fetchCatalog` (com cache offline), `install`/`update`/`uninstall` a partir da última release do GitHub, `checkUpdates`.
 
 ### `i18n.js`
 `load(lang)` lê `src/common/locales/<lang>.json` (fallback `en`), `t(key, vars)` com `{var}`.
