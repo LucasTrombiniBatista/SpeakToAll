@@ -190,6 +190,8 @@
         <div class="plugins-bar">
           <div class="seg" id="plugins-tabs" role="tablist">
             <button data-tab="installed" aria-pressed="true">Instalados</button>
+            <button data-tab="store">Loja</button>
+            <button data-tab="updates">Atualizações <span class="count mono" id="updates-count"></span></button>
           </div>
           <label class="check">
             <span class="toggle"><input type="checkbox" data-setting="restrictedMode"><span></span></span>
@@ -203,6 +205,22 @@
             <button class="btn btn-sm btn-ghost" id="plugins-reload">Recarregar</button>
           </div>
           <ul class="plugin-list" id="plugins-installed"></ul>
+        </div>
+
+        <div class="plugins-panel" data-ptab="store" hidden>
+          <div class="row-tight">
+            <input class="input" id="store-search" type="search" placeholder="Buscar plugins…">
+            <select class="select" id="store-category"><option value="">Todas as categorias</option></select>
+          </div>
+          <p class="mono muted" id="store-status"></p>
+          <ul class="plugin-list" id="store-list"></ul>
+        </div>
+
+        <div class="plugins-panel" data-ptab="updates" hidden>
+          <div class="row-tight">
+            <button class="btn btn-sm" id="updates-check">Procurar atualizações</button>
+          </div>
+          <ul class="plugin-list" id="updates-list"></ul>
         </div>
       </section>
 

@@ -485,12 +485,111 @@ async function renderInstalled() {
     input.setAttribute('aria-label', `Ativar ${m.name || p.id}`);
     input.addEventListener('change', () => (input.checked ? api.enablePlugin(p.id) : api.disablePlugin(p.id)));
     toggle.append(input, el('span'));
-    actions.append(toggle);
+    const remove = el('button', 'btn btn-sm btn-ghost btn-danger', 'Desinstalar');
+    remove.addEventListener('click', async () => {
+      if (!confirm(`Desinstalar ${m.name || p.id}? A pasta do plugin será apagada.`)) return;
+      await api.uninstallPlugin(p.id);
+      renderStore();
+    });
+    actions.append(remove, toggle);
     ul.append(li);
   }
 }
 
-function renderPlugins() { renderInstalled(); }
+let catalog = null; // { plugins, offline }
+
+async function loadCatalog() {
+  $('#store-status').textContent = 'Carregando catálogo…';
+  try {
+    catalog = await api.storeCatalog();
+    const sel = $('#store-category');
+    const cats = [...new Set(catalog.plugins.map((p) => p.category).filter(Boolean))].sort();
+    sel.replaceChildren(new Option('Todas as categorias', ''), ...cats.map((c) => new Option(c, c)));
+  } catch (err) {
+    catalog = { plugins: [], offline: true };
+  }
+  renderStore();
+}
+
+async function renderStore() {
+  if (!catalog) return;
+  const installed = new Set((await api.listPlugins()).map((p) => p.id));
+  const q = $('#store-search').value.trim().toLowerCase();
+  const cat = $('#store-category').value;
+  const items = catalog.plugins.filter((p) =>
+    (!cat || p.category === cat) &&
+    (!q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.author.toLowerCase().includes(q)));
+  $('#store-status').textContent = catalog.offline ? 'Sem conexão: mostrando o último catálogo salvo.' : '';
+  const ul = $('#store-list');
+  ul.replaceChildren();
+  if (!items.length) {
+    ul.append(el('li', 'list-empty', catalog.plugins.length ? 'Nada encontrado.' : 'Catálogo vazio ou indisponível.'));
+    return;
+  }
+  for (const p of items) {
+    const { li, main, actions } = pluginCard({ name: p.name, meta: [p.author, p.category].filter(Boolean).join(' · '), description: p.description });
+    if (p.permissions.length) main.append(el('p', 'mono muted', `Permissões: ${p.permissions.join(', ')}`));
+    const repo = el('button', 'btn btn-sm btn-ghost', 'Repositório ↗');
+    repo.addEventListener('click', () => api.openExternal(`https://github.com/${p.repo}`));
+    const install = el('button', `btn btn-sm ${installed.has(p.id) ? '' : 'btn-primary'}`, installed.has(p.id) ? 'Instalado' : 'Instalar');
+    install.disabled = installed.has(p.id);
+    install.addEventListener('click', () => installFromStore(p, install));
+    actions.append(repo, install);
+    ul.append(li);
+  }
+}
+
+async function installFromStore(p, btn) {
+  const perms = p.permissions.length ? p.permissions.join(', ') : 'nenhuma declarada';
+  if (!confirm(`Instalar "${p.name}" de ${p.repo}?\n\nPermissões: ${perms}\n\nPlugins rodam com o mesmo acesso do aplicativo. Só instale se confiar no autor.`)) return;
+  btn.disabled = true; btn.textContent = 'Instalando…';
+  try {
+    await api.installPlugin(p.id);
+    toast(`${p.name} instalado. Ative na aba Instalados.`);
+  } catch (err) {
+    toast(`Falha ao instalar: ${err.message}`);
+  }
+  renderStore();
+}
+
+$('#store-search').addEventListener('input', renderStore);
+$('#store-category').addEventListener('change', renderStore);
+
+async function checkUpdates() {
+  const btn = $('#updates-check');
+  btn.disabled = true; btn.textContent = 'Procurando…';
+  const ul = $('#updates-list');
+  try {
+    const ups = await api.checkPluginUpdates();
+    $('#updates-count').textContent = ups.length || '';
+    ul.replaceChildren();
+    if (!ups.length) ul.append(el('li', 'list-empty', 'Tudo atualizado.'));
+    for (const u of ups) {
+      const { li, actions } = pluginCard({
+        name: u.name, meta: `v${u.current} → v${u.latest}`,
+        error: u.compatible ? null : `Requer SpeakToAll ${u.minAppVersion} ou mais novo.`,
+      });
+      const b = el('button', 'btn btn-sm btn-primary', 'Atualizar');
+      b.disabled = !u.compatible;
+      b.addEventListener('click', async () => {
+        b.disabled = true; b.textContent = 'Atualizando…';
+        try { await api.updatePlugin(u.id); toast(`${u.name} atualizado`); checkUpdates(); } catch (err) { toast(`Falha: ${err.message}`); b.disabled = false; b.textContent = 'Atualizar'; }
+      });
+      actions.append(b);
+      ul.append(li);
+    }
+  } catch (err) {
+    toast(`Não foi possível procurar: ${err.message}`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Procurar atualizações';
+  }
+}
+$('#updates-check').addEventListener('click', checkUpdates);
+
+// Catálogo só é baixado quando a aba Loja é aberta (o app funciona offline por padrão).
+$$('#plugins-tabs button').forEach((b) => b.addEventListener('click', () => { if (b.dataset.tab === 'store' && !catalog) loadCatalog(); }));
+
+function renderPlugins() { renderInstalled(); renderStore(); }
 
 $('#plugins-folder').addEventListener('click', () => api.openPluginsFolder());
 $('#plugins-reload').addEventListener('click', async () => { await api.reloadPlugins(); toast('Plugins recarregados'); });

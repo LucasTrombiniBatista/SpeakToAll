@@ -29,6 +29,11 @@ contextBridge.exposeInMainWorld('wp', {
   reloadPlugins: () => ipcRenderer.invoke('plugins:reload'),
   runPluginCommand: (pluginId, commandId) => ipcRenderer.invoke('plugins:run-command', pluginId, commandId),
   openPluginsFolder: () => ipcRenderer.invoke('plugins:open-folder'),
+  storeCatalog: () => ipcRenderer.invoke('store:catalog'),
+  installPlugin: (id) => ipcRenderer.invoke('store:install', id),
+  uninstallPlugin: (id) => ipcRenderer.invoke('store:uninstall', id),
+  checkPluginUpdates: () => ipcRenderer.invoke('store:updates'),
+  updatePlugin: (id) => ipcRenderer.invoke('store:update', id),
   on: (event, cb) => {
     if (!EVENTS.includes(event)) throw new Error(`evento não permitido: ${event}`);
     const fn = (_e, payload) => cb(payload);

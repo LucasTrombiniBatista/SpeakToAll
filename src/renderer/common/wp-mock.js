@@ -159,6 +159,22 @@
     async reloadPlugins() { emit('plugins:changed'); return pluginList(); },
     async runPluginCommand() { emit('plugins:notice', { name: 'Maiúscula inicial', message: 'Ponto final desligado' }); },
     async openPluginsFolder() {},
+    async storeCatalog() {
+      await wait(400);
+      return { offline: false, plugins: [
+        { id: 'maiuscula-inicial', repo: 'speaktoall/maiuscula-inicial', name: 'Maiúscula inicial', author: 'SpeakToAll', description: 'Começa cada frase ditada com letra maiúscula.', category: 'Texto', permissions: ['text'] },
+        { id: 'glossario', repo: 'fulano/glossario', name: 'Glossário', author: 'fulano', description: 'Troca termos ditados pela grafia correta (ex.: "java script" → "JavaScript").', category: 'Texto', permissions: ['text'] },
+        { id: 'webhook-notas', repo: 'ciclana/webhook-notas', name: 'Webhook de notas', author: 'ciclana', description: 'Envia cada nota nova para uma URL.', category: 'Integrações', permissions: ['notes', 'network'] },
+      ] };
+    },
+    async installPlugin(id) {
+      await wait(800);
+      plugins.push({ id, enabled: false, loaded: false, error: null, commands: [], manifest: { id, name: id, version: '1.0.0', minAppVersion: '0.1.0', author: 'mock', description: 'Instalado pelo mock.' } });
+      emit('plugins:changed');
+    },
+    async uninstallPlugin(id) { plugins.splice(plugins.findIndex((p) => p.id === id), 1); emit('plugins:changed'); return pluginList(); },
+    async checkPluginUpdates() { await wait(500); return [{ id: 'maiuscula-inicial', name: 'Maiúscula inicial', current: '1.0.0', latest: '1.1.0', minAppVersion: '0.1.0', compatible: true }]; },
+    async updatePlugin() { await wait(600); },
     on(ev, cb) {
       (listeners[ev] ||= []).push(cb);
       return () => { listeners[ev] = listeners[ev].filter((f) => f !== cb); };
