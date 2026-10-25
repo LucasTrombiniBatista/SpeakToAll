@@ -6,8 +6,8 @@ const EventEmitter = require('events');
 const MIN_MS = 350;
 
 class Dictation extends EventEmitter {
-  init({ engine, injector, notes, config, windows, hotkeys, audioDir }) {
-    Object.assign(this, { engine, injector, notes, config, windows, hotkeys, audioDir });
+  init({ engine, injector, notes, config, windows, hotkeys, plugins, audioDir }) {
+    Object.assign(this, { engine, injector, notes, config, windows, hotkeys, plugins, audioDir });
     this.state = 'idle';
     this.startedAt = 0;
     hotkeys.on('start', () => this.start());
@@ -65,8 +65,10 @@ class Dictation extends EventEmitter {
       this.windows.overlayCommand({ type: 'transcribing' });
       const res = await this.engine.transcribe(buf, { language: s.language });
       const lang = res.language || s.language;
-      const text = this.engine.postProcess(this.engine.cleanTranscript(res.text || ''), lang, s.chineseVariant);
+      const raw = this.engine.postProcess(this.engine.cleanTranscript(res.text || ''), lang, s.chineseVariant);
+      const text = raw && (await this.plugins.processText(raw, { source: 'dictation', language: lang })).trim();
       if (!text) { this.windows.hideOverlay(); return this.finish(); }
+      this.plugins.dispatch('dictation:text', { text, language: lang });
 
       await this.injector.inject(text, s.injectMode);
       this.windows.overlayCommand({ type: 'done' });
