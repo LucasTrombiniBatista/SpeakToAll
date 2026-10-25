@@ -2,7 +2,9 @@
   "nav.notes": "Notas",
   "nav.import": "Importar áudio",
   "nav.meeting": "Reunião",
+  "nav.plugins": "Plugins",
   "nav.settings": "Configurações",
+  "plugins.title": "Plugins",
   "notes.title": "Notas",
   "notes.search": "Buscar nas notas…"
 }

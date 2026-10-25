@@ -16,7 +16,20 @@
     sounds: true, saveDictationNotes: true, saveAudio: false,
     aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1',
     startWithWindows: false, closeToTray: true, theme: 'system', onboarded: true,
+    enabledPlugins: ['maiuscula-inicial'], restrictedMode: false,
   };
+  const plugins = [
+    {
+      id: 'maiuscula-inicial', enabled: true, loaded: true, error: null,
+      manifest: { id: 'maiuscula-inicial', name: 'Maiúscula inicial', version: '1.0.0', minAppVersion: '0.1.0', author: 'SpeakToAll', description: 'Começa cada frase ditada com letra maiúscula e termina com ponto final.' },
+      commands: [{ id: 'toggle-period', name: 'Ligar/desligar ponto final' }],
+    },
+    {
+      id: 'quebrado', enabled: false, loaded: false, error: 'requer SpeakToAll 9.0.0 ou mais novo',
+      manifest: null, commands: [],
+    },
+  ];
+  const pluginList = () => plugins.map((p) => ({ ...p, loaded: p.enabled && !settings.restrictedMode && !!p.manifest }));
   let engine = { installed: true, ready: true, model: settings.model, flavor: 'cpu' };
 
   const notes = [
@@ -140,6 +153,12 @@
     }); },
     async previewOverlay(state) { window.open(`../overlay/overlay.html?preview=${state}`, 'overlay', 'width=360,height=110'); },
     async openExternal(url) { if (/^https?:\/\//.test(url)) window.open(url, '_blank'); },
+    async listPlugins() { return pluginList(); },
+    async enablePlugin(id) { plugins.find((p) => p.id === id).enabled = true; emit('plugins:changed'); return pluginList(); },
+    async disablePlugin(id) { plugins.find((p) => p.id === id).enabled = false; emit('plugins:changed'); return pluginList(); },
+    async reloadPlugins() { emit('plugins:changed'); return pluginList(); },
+    async runPluginCommand() { emit('plugins:notice', { name: 'Maiúscula inicial', message: 'Ponto final desligado' }); },
+    async openPluginsFolder() {},
     on(ev, cb) {
       (listeners[ev] ||= []).push(cb);
       return () => { listeners[ev] = listeners[ev].filter((f) => f !== cb); };
