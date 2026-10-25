@@ -1,0 +1,32 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state'];
+
+contextBridge.exposeInMainWorld('wp', {
+  isMock: false,
+  i18n: () => ipcRenderer.invoke('i18n:get'),
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
+  engineStatus: () => ipcRenderer.invoke('engine:status'),
+  detectHardware: () => ipcRenderer.invoke('engine:hardware'),
+  installEngine: (opts) => ipcRenderer.invoke('engine:install', opts),
+  cancelInstall: () => ipcRenderer.invoke('engine:cancel'),
+  listNotes: () => ipcRenderer.invoke('notes:list'),
+  getNote: (id) => ipcRenderer.invoke('notes:get', id),
+  updateNote: (id, patch) => ipcRenderer.invoke('notes:update', id, patch),
+  deleteNote: (id) => ipcRenderer.invoke('notes:delete', id),
+  exportNote: (id, fmt) => ipcRenderer.invoke('notes:export', id, fmt),
+  transcribeFile: (name, wav, durationMs) => ipcRenderer.invoke('transcribe:start', name, wav, durationMs),
+  meetingDone: (wav, meta) => ipcRenderer.invoke('meeting:done', wav, meta),
+  summarize: (id) => ipcRenderer.invoke('ai:summarize', id),
+  chat: (id, messages) => ipcRenderer.invoke('ai:chat', id, messages),
+  captureHotkey: () => ipcRenderer.invoke('hotkey:capture'),
+  previewOverlay: (state) => ipcRenderer.invoke('overlay:preview', state),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  on: (event, cb) => {
+    if (!EVENTS.includes(event)) throw new Error(`evento não permitido: ${event}`);
+    const fn = (_e, payload) => cb(payload);
+    ipcRenderer.on(event, fn);
+    return () => ipcRenderer.removeListener(event, fn);
+  },
+});

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src blob:">
+  <title>SpeakToAll Overlay</title>
+  <link rel="stylesheet" href="../common/tokens.css">
+  <style>
+    html, body { background: transparent; overflow: hidden; }
+    body { display: grid; place-items: center; height: 100vh; }
+    .bubble {
+      display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 18px 0 14px;
+      border-radius: var(--r-pill); background: var(--sta-panel); color: #fff;
+      box-shadow: 0 10px 30px -8px #0E0F1399, 0 0 0 1px #FFFFFF14 inset;
+      opacity: 0; transform: translateY(8px) scale(.96); transition: opacity .16s, transform .16s;
+    }
+    .bubble.show { opacity: 1; transform: none; }
+    .rec { width: 10px; height: 10px; border-radius: 50%; background: var(--sta-onair); box-shadow: 0 0 0 4px #FF3B3033; animation: pulse 1.2s infinite; flex-shrink: 0; }
+    canvas { width: 120px; height: 28px; }
+    .time { font: 500 13px var(--font-mono); color: #FFFFFFCC; min-width: 74px; }
+    .lock { font: 500 10px var(--font-mono); letter-spacing: .1em; color: #FFFFFF99; }
+    .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #FFFFFF26; border-top-color: var(--sta-cobalt); animation: spin .7s linear infinite; flex-shrink: 0; }
+    .ok { width: 20px; height: 20px; border-radius: 50%; background: var(--sta-ok); display: grid; place-items: center; flex-shrink: 0; }
+    .err { width: 20px; height: 20px; border-radius: 50%; background: var(--sta-onair); display: grid; place-items: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
+    .label { font-weight: 500; font-size: 14px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+    [hidden] { display: none !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="bubble" id="bubble">
+    <span class="rec" id="i-rec"></span>
+    <span class="spin" id="i-spin" hidden></span>
+    <span class="ok" id="i-ok" hidden><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <span class="err" id="i-err" hidden>!</span>
+    <canvas id="levels" height="28"></canvas>
+    <span class="time" id="time">00:00.000</span>
+    <span class="lock" id="lock" hidden>TRAVADO</span>
+    <span class="label" id="label" hidden></span>
+  </div>
+
+  <script src="../common/wp-mock.js"></script>
+  <script src="../common/audio.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>
