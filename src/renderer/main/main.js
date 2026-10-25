@@ -393,6 +393,7 @@ async function saveSetting(key, value) {
   bindSettings();
   applyTheme();
   renderHotkey();
+  if (key === 'uiLanguage') { dict = await api.i18n(); applyI18n(); }
   if (['model', 'engineFlavor', 'language', 'initialPrompt'].includes(key)) toast('Motor será reiniciado');
 }
 
