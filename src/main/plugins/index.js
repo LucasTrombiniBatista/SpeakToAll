@@ -141,12 +141,6 @@ class Plugins extends EventEmitter {
 
   unloadAll() { for (const id of this.entries.keys()) this._unload(id); }
 
-  remove(id) {
-    this.disable(id);
-    this.entries.delete(id);
-    this.changed();
-  }
-
   setBlocked(ids = []) {
     this.blocked = new Set(ids);
     for (const id of this.blocked) if (this.entries.get(id)?.instance) { this._unload(id); this.entries.get(id).error = 'bloqueado pelo catálogo'; }

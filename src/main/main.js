@@ -15,6 +15,7 @@ const tray = require('./tray');
 const windows = require('./windows');
 const dictation = require('./dictation');
 const plugins = require('./plugins');
+const store = require('./plugins/store');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
@@ -109,6 +110,12 @@ function registerIpc(d) {
   ipcMain.handle('plugins:run-command', (_e, pluginId, commandId) => plugins.runCommand(pluginId, commandId));
   ipcMain.handle('plugins:open-folder', () => shell.openPath(plugins.dir));
 
+  ipcMain.handle('store:catalog', () => store.fetchCatalog());
+  ipcMain.handle('store:install', (_e, id) => store.install(id));
+  ipcMain.handle('store:uninstall', (_e, id) => store.uninstall(id));
+  ipcMain.handle('store:updates', () => store.checkUpdates());
+  ipcMain.handle('store:update', (_e, id) => store.update(id));
+
   ipcMain.on('overlay:audio', (_e, wav) => dictation.onAudio(wav));
   ipcMain.on('overlay:hide', () => windows.hideOverlay());
 }
@@ -138,6 +145,7 @@ app.whenReady().then(async () => {
     },
   });
 
+  store.init({ baseDir: d.base, plugins, config });
   await plugins.init({
     baseDir: d.base, appVersion: app.getVersion(), config, notes,
     onNotify: (n) => windows.send('plugins:notice', n),
