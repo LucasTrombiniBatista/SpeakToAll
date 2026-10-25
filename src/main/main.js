@@ -14,6 +14,7 @@ const injector = require('./injector');
 const tray = require('./tray');
 const windows = require('./windows');
 const dictation = require('./dictation');
+const plugins = require('./plugins');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
@@ -109,6 +110,7 @@ app.on('second-instance', () => windows.showMain());
 app.on('before-quit', () => {
   windows.setQuitting();
   hotkeys.stop();
+  plugins.unloadAll();
   injector.stop();
   engine.stop();
 });
@@ -121,11 +123,17 @@ app.whenReady().then(async () => {
   engine.init({ dataDir: d.base });
   jobs.init({
     notes, tmpDir: d.tmp,
+    processText: (text, ctx) => plugins.processText(text, ctx),
     transcribeFn: (wavPath, onSegment, onProgress) => {
       const s = config.get();
       const run = engine.transcribeFile(wavPath, s, (seg) => onSegment({ ...seg, text: engine.postProcess(seg.text, s.language, s.chineseVariant) }), onProgress);
       return { cancel: run.cancel, promise: run.promise.then((r) => ({ ...r, text: engine.postProcess(r.text, s.language, s.chineseVariant) })) };
     },
+  });
+
+  await plugins.init({
+    baseDir: d.base, appVersion: app.getVersion(), config, notes,
+    onNotify: (n) => windows.send('plugins:notice', n),
   });
 
   registerIpc(d);
@@ -144,15 +152,20 @@ app.whenReady().then(async () => {
   jobs.on('update', (job) => windows.send('jobs:update', job));
   dictation.on('state', (st) => tray.setRecording(st === 'recording'));
 
+  // Eventos do app repassados aos plugins.
+  dictation.on('state', (state) => plugins.dispatch('dictation:state', { state }));
+  notes.on('changed', (e) => { if (e?.type === 'create') plugins.dispatch('note:created', notes.get(e.id)); });
+
   config.on('changed', (s, keys) => {
     windows.send('settings:changed', s);
+    plugins.dispatch('settings:changed', plugins.api.getSettings());
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
     if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
   });
 
   injector.start();
-  dictation.init({ engine, injector, notes, config, windows, hotkeys, audioDir: d.audio });
+  dictation.init({ engine, injector, notes, config, windows, hotkeys, plugins, audioDir: d.audio });
   configureHotkeys(config.get());
   hotkeys.start();
   startEngine();
