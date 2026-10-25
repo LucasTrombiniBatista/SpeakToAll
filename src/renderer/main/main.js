@@ -423,6 +423,9 @@ $('#set-reinstall').addEventListener('click', () => openOnboarding(1));
 $('#set-onboarding').addEventListener('click', () => openOnboarding(0));
 
 /* ---------- plugins ---------- */
+// Erros do ipcMain chegam como "Error invoking remote method 'x': Error: msg".
+const errMsg = (err) => String(err?.message || err).replace(/^Error invoking remote method '[^']*': (Error: )?/, '');
+
 // Texto vindo de manifests e do catálogo é de terceiros: sempre textContent, nunca innerHTML.
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -472,7 +475,7 @@ async function renderInstalled() {
       const cmds = el('div', 'row-tight');
       for (const c of p.commands) {
         const b = el('button', 'btn btn-sm', c.name);
-        b.addEventListener('click', () => api.runPluginCommand(p.id, c.id).catch((err) => toast(err.message)));
+        b.addEventListener('click', () => api.runPluginCommand(p.id, c.id).catch((err) => toast(errMsg(err))));
         cmds.append(b);
       }
       main.append(cmds);
@@ -547,7 +550,7 @@ async function installFromStore(p, btn) {
     await api.installPlugin(p.id);
     toast(`${p.name} instalado. Ative na aba Instalados.`);
   } catch (err) {
-    toast(`Falha ao instalar: ${err.message}`);
+    toast(`Falha ao instalar: ${errMsg(err)}`);
   }
   renderStore();
 }
@@ -573,13 +576,13 @@ async function checkUpdates() {
       b.disabled = !u.compatible;
       b.addEventListener('click', async () => {
         b.disabled = true; b.textContent = 'Atualizando…';
-        try { await api.updatePlugin(u.id); toast(`${u.name} atualizado`); checkUpdates(); } catch (err) { toast(`Falha: ${err.message}`); b.disabled = false; b.textContent = 'Atualizar'; }
+        try { await api.updatePlugin(u.id); toast(`${u.name} atualizado`); checkUpdates(); } catch (err) { toast(`Falha: ${errMsg(err)}`); b.disabled = false; b.textContent = 'Atualizar'; }
       });
       actions.append(b);
       ul.append(li);
     }
   } catch (err) {
-    toast(`Não foi possível procurar: ${err.message}`);
+    toast(`Não foi possível procurar: ${errMsg(err)}`);
   } finally {
     btn.disabled = false; btn.textContent = 'Procurar atualizações';
   }
