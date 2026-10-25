@@ -4,7 +4,7 @@
 
 App desktop para Windows que transcreve sua voz **offline** e digita o resultado em qualquer programa. Segure uma tecla (padrão <kbd>F9</kbd>), fale, solte — o texto aparece onde o cursor estiver e fica salvo como nota.
 
-Baseado na arquitetura do [WhisperPress](https://github.com/b84330808/whisperpress) (veja `whisperpress-explicacao.md`): Electron + JavaScript puro como casca, reconhecimento de voz pelos binários do [whisper.cpp](https://github.com/ggml-org/whisper.cpp), injeção de texto pelo `SendInput` do Win32.
+Stack: Electron + JavaScript puro como casca, reconhecimento de voz pelos binários do [whisper.cpp](https://github.com/ggml-org/whisper.cpp), injeção de texto pelo `SendInput` do Win32.
 
 ## Funcionalidades
 
@@ -46,7 +46,6 @@ SpeakToAll/
 │   │   ├── main/           # janela principal (notas, importar, reunião, config, onboarding)
 │   │   └── overlay/        # pílula de gravação
 │   └── common/locales/     # traduções
-└── whisperpress-explicacao.md   # referência de arquitetura original
 ```
 
 ## Documentação
