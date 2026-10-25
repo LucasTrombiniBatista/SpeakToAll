@@ -62,18 +62,38 @@ function renderLogo(recording) {
 
 let tray = null;
 let icons = null;
+let handlers = {};
+let pluginCommands = [];
 
-function createTray({ onOpen, onQuit, onToggleRecording } = {}) {
+function buildMenu() {
+  const { onOpen, onQuit, onToggleRecording, onPluginCommand } = handlers;
+  const items = [{ label: 'Abrir SpeakToAll', click: () => onOpen && onOpen() }];
+  if (onToggleRecording) items.push({ label: 'Gravar / Parar', click: () => onToggleRecording() });
+  if (pluginCommands.length && onPluginCommand) {
+    items.push({
+      label: 'Plugins',
+      submenu: pluginCommands.map((c) => ({ label: `${c.pluginName}: ${c.name}`, click: () => onPluginCommand(c.pluginId, c.id) })),
+    });
+  }
+  items.push({ type: 'separator' }, { label: 'Sair', click: () => onQuit && onQuit() });
+  tray.setContextMenu(Menu.buildFromTemplate(items));
+}
+
+function createTray(opts = {}) {
   if (tray) return tray;
+  handlers = opts;
   icons = { idle: renderLogo(false), recording: renderLogo(true) };
   tray = new Tray(icons.idle);
   tray.setToolTip('SpeakToAll');
-  const items = [{ label: 'Abrir SpeakToAll', click: () => onOpen && onOpen() }];
-  if (onToggleRecording) items.push({ label: 'Gravar / Parar', click: () => onToggleRecording() });
-  items.push({ type: 'separator' }, { label: 'Sair', click: () => onQuit && onQuit() });
-  tray.setContextMenu(Menu.buildFromTemplate(items));
-  tray.on('click', () => onOpen && onOpen());
+  buildMenu();
+  tray.on('click', () => handlers.onOpen && handlers.onOpen());
   return tray;
+}
+
+// cmds: [{pluginId, id, name, pluginName}]
+function setPluginCommands(cmds) {
+  pluginCommands = cmds || [];
+  if (tray && !tray.isDestroyed()) buildMenu();
 }
 
 function setRecording(on) {
@@ -87,4 +107,4 @@ function destroyTray() {
   tray = null;
 }
 
-module.exports = { createTray, setRecording, destroyTray, renderLogo };
+module.exports = { createTray, setRecording, setPluginCommands, destroyTray, renderLogo };

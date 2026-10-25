@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state'];
+const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state', 'plugins:changed', 'plugins:notice'];
 
 contextBridge.exposeInMainWorld('wp', {
   isMock: false,
@@ -23,6 +23,17 @@ contextBridge.exposeInMainWorld('wp', {
   captureHotkey: () => ipcRenderer.invoke('hotkey:capture'),
   previewOverlay: (state) => ipcRenderer.invoke('overlay:preview', state),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  listPlugins: () => ipcRenderer.invoke('plugins:list'),
+  enablePlugin: (id) => ipcRenderer.invoke('plugins:enable', id),
+  disablePlugin: (id) => ipcRenderer.invoke('plugins:disable', id),
+  reloadPlugins: () => ipcRenderer.invoke('plugins:reload'),
+  runPluginCommand: (pluginId, commandId) => ipcRenderer.invoke('plugins:run-command', pluginId, commandId),
+  openPluginsFolder: () => ipcRenderer.invoke('plugins:open-folder'),
+  storeCatalog: () => ipcRenderer.invoke('store:catalog'),
+  installPlugin: (id) => ipcRenderer.invoke('store:install', id),
+  uninstallPlugin: (id) => ipcRenderer.invoke('store:uninstall', id),
+  checkPluginUpdates: () => ipcRenderer.invoke('store:updates'),
+  updatePlugin: (id) => ipcRenderer.invoke('store:update', id),
   on: (event, cb) => {
     if (!EVENTS.includes(event)) throw new Error(`evento não permitido: ${event}`);
     const fn = (_e, payload) => cb(payload);
