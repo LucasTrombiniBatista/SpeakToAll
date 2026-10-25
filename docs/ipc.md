@@ -25,6 +25,15 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `captureHotkey()` | `hotkey:capture` | rótulo da tecla (ex.: `"Ctrl+Shift+K"`) ou `null` |
 | `previewOverlay(state)` | `overlay:preview` | mostra o overlay no estado pedido |
 | `openExternal(url)` | `open-external` | só `http(s)://` |
+| `listPlugins()` | `plugins:list` | `[{id, manifest, enabled, loaded, error, commands}]` |
+| `enablePlugin(id)` / `disablePlugin(id)` | `plugins:enable` / `plugins:disable` | lista atualizada |
+| `reloadPlugins()` | `plugins:reload` | lista atualizada |
+| `runPluginCommand(pluginId, commandId)` | `plugins:run-command` | — |
+| `openPluginsFolder()` | `plugins:open-folder` | — |
+| `storeCatalog()` | `store:catalog` | `{plugins, offline}` |
+| `installPlugin(id)` / `updatePlugin(id)` | `store:install` / `store:update` | manifest instalado |
+| `uninstallPlugin(id)` | `store:uninstall` | lista atualizada |
+| `checkPluginUpdates()` | `store:updates` | `[{id, name, current, latest, minAppVersion, compatible}]` |
 | `on(event, cb)` | — | função para remover o listener |
 
 ## Janela principal — eventos (`wp.on`)
@@ -40,6 +49,8 @@ Só os eventos desta lista são aceitos (allowlist no preload).
 | `notes:changed` | — |
 | `ai:chunk` | `{delta}` · `{error}` · `{done: true}` |
 | `dictation:state` | `{state: 'idle' \| 'recording' \| 'transcribing' \| 'needs-setup'}` |
+| `plugins:changed` | — |
+| `plugins:notice` | `{pluginId, name, message}` |
 
 ## Overlay
 
@@ -72,4 +83,4 @@ O overlay **sempre** devolve o áudio ao parar; quem descarta gravações < 350 
 
 `source`: `dictation` · `import` · `meeting`. Tempos em milissegundos.
 
-**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyCode`, `hotkeyModifiers`, `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `theme`, `uiLanguage`, `startWithWindows`, `closeToTray`, `onboarded`, `chineseVariant`.
+**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyCode`, `hotkeyModifiers`, `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `theme`, `uiLanguage`, `startWithWindows`, `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.
