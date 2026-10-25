@@ -394,6 +394,7 @@ async function saveSetting(key, value) {
   applyTheme();
   renderHotkey();
   if (key === 'uiLanguage') { dict = await api.i18n(); applyI18n(); }
+  if (key === 'restrictedMode') renderPlugins();
   if (['model', 'engineFlavor', 'language', 'initialPrompt'].includes(key)) toast('Motor será reiniciado');
 }
 
@@ -420,6 +421,79 @@ $('#set-hotkey').addEventListener('click', async (e) => {
 $$('[data-preview]').forEach((b) => b.addEventListener('click', () => api.previewOverlay(b.dataset.preview)));
 $('#set-reinstall').addEventListener('click', () => openOnboarding(1));
 $('#set-onboarding').addEventListener('click', () => openOnboarding(0));
+
+/* ---------- plugins ---------- */
+// Texto vindo de manifests e do catálogo é de terceiros: sempre textContent, nunca innerHTML.
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function pluginCard({ name, meta, description, error }) {
+  const li = el('li', 'plugin card');
+  const main = el('div', 'plugin-main');
+  const head = el('div', 'plugin-head');
+  head.append(el('strong', '', name), el('span', 'mono muted', meta));
+  main.append(head);
+  if (description) main.append(el('p', 'muted', description));
+  if (error) main.append(el('p', 'plugin-error', error));
+  const actions = el('div', 'plugin-actions');
+  li.append(main, actions);
+  return { li, main, actions };
+}
+
+function setPluginTab(tab) {
+  $$('#plugins-tabs button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === tab));
+  $$('[data-ptab]').forEach((p) => (p.hidden = p.dataset.ptab !== tab));
+}
+$$('#plugins-tabs button').forEach((b) => b.addEventListener('click', () => setPluginTab(b.dataset.tab)));
+
+async function renderInstalled() {
+  const list = await api.listPlugins();
+  const ul = $('#plugins-installed');
+  ul.replaceChildren();
+  if (!list.length) {
+    ul.append(el('li', 'list-empty', 'Nenhum plugin instalado. Use a loja ou copie uma pasta para a pasta de plugins.'));
+    return;
+  }
+  for (const p of list) {
+    const m = p.manifest || {};
+    let error = p.error;
+    if (!error && p.enabled && !p.loaded && settings.restrictedMode) error = 'Não carregado: modo restrito ligado.';
+    const { li, main, actions } = pluginCard({
+      name: m.name || p.id,
+      meta: m.version ? `v${m.version} · ${m.author}` : p.id,
+      description: m.description,
+      error,
+    });
+    if (p.commands.length) {
+      const cmds = el('div', 'row-tight');
+      for (const c of p.commands) {
+        const b = el('button', 'btn btn-sm', c.name);
+        b.addEventListener('click', () => api.runPluginCommand(p.id, c.id).catch((err) => toast(err.message)));
+        cmds.append(b);
+      }
+      main.append(cmds);
+    }
+    const toggle = el('span', 'toggle');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = p.enabled;
+    input.disabled = !p.manifest;
+    input.setAttribute('aria-label', `Ativar ${m.name || p.id}`);
+    input.addEventListener('change', () => (input.checked ? api.enablePlugin(p.id) : api.disablePlugin(p.id)));
+    toggle.append(input, el('span'));
+    actions.append(toggle);
+    ul.append(li);
+  }
+}
+
+function renderPlugins() { renderInstalled(); }
+
+$('#plugins-folder').addEventListener('click', () => api.openPluginsFolder());
+$('#plugins-reload').addEventListener('click', async () => { await api.reloadPlugins(); toast('Plugins recarregados'); });
 
 /* ---------- onboarding ---------- */
 const OB_LAST = 4;
@@ -520,6 +594,9 @@ $('#ob-next').addEventListener('click', async () => {
   renderEngine(await api.engineStatus());
   api.on('engine:status', renderEngine);
   api.on('settings:changed', (s) => { settings = s; });
+  api.on('plugins:changed', renderPlugins);
+  api.on('plugins:notice', ({ name, message }) => toast(`${name}: ${message}`));
+  renderPlugins();
   api.on('notes:changed', loadNotes);
   api.on('dictation:state', ({ state }) => { if (state === 'needs-setup') openOnboarding(0); });
   await loadNotes();
