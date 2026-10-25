@@ -102,6 +102,13 @@ function registerIpc(d) {
   ipcMain.handle('overlay:preview', (_e, type) => windows.overlayCommand(type === 'recording' ? { type: 'start', ...config.get() } : { type }));
   ipcMain.handle('open-external', (_e, url) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); });
 
+  ipcMain.handle('plugins:list', () => plugins.list());
+  ipcMain.handle('plugins:enable', (_e, id) => plugins.enable(id));
+  ipcMain.handle('plugins:disable', (_e, id) => plugins.disable(id));
+  ipcMain.handle('plugins:reload', () => plugins.reload());
+  ipcMain.handle('plugins:run-command', (_e, pluginId, commandId) => plugins.runCommand(pluginId, commandId));
+  ipcMain.handle('plugins:open-folder', () => shell.openPath(plugins.dir));
+
   ipcMain.on('overlay:audio', (_e, wav) => dictation.onAudio(wav));
   ipcMain.on('overlay:hide', () => windows.hideOverlay());
 }
@@ -145,6 +152,12 @@ app.whenReady().then(async () => {
     onOpen: () => windows.showMain(),
     onQuit: () => app.quit(),
     onToggleRecording: () => (dictation.state === 'idle' ? dictation.start() : dictation.stop()),
+    onPluginCommand: (pluginId, id) => plugins.runCommand(pluginId, id).catch(() => {}),
+  });
+  tray.setPluginCommands(plugins.commands());
+  plugins.on('changed', () => {
+    tray.setPluginCommands(plugins.commands());
+    windows.send('plugins:changed');
   });
 
   engine.on('status', (st) => windows.send('engine:status', st));
@@ -159,6 +172,7 @@ app.whenReady().then(async () => {
   config.on('changed', (s, keys) => {
     windows.send('settings:changed', s);
     plugins.dispatch('settings:changed', plugins.api.getSettings());
+    if (keys.includes('restrictedMode')) plugins.reload();
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
     if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
