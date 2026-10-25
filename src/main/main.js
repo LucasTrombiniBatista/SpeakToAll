@@ -146,7 +146,7 @@ app.whenReady().then(async () => {
 
   config.on('changed', (s, keys) => {
     windows.send('settings:changed', s);
-    if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing && engine.status().installed) startEngine();
+    if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
     if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
   });
