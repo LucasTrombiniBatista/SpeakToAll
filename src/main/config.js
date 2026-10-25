@@ -15,6 +15,8 @@ const DEFAULTS = {
   hotkeyModifiers: { ctrl: false, alt: false, shift: false, meta: false },
   threads: Math.max(1, os.cpus().length - 2),
   chineseVariant: 'traditional',
+  enabledPlugins: [], restrictedMode: false,
+  pluginCatalogUrl: 'https://raw.githubusercontent.com/speaktoall/plugins/main/plugins.json',
 };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
