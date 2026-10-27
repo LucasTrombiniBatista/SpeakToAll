@@ -14,7 +14,8 @@
     language: 'pt', model: 'large-v3-turbo-q5_0', engineFlavor: 'cpu', micDevice: 'default',
     initialPrompt: 'Olá, tudo bem? Vamos começar.', injectMode: 'paste',
     sounds: true, saveDictationNotes: true, saveAudio: false,
-    aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1',
+    aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
+    obsidianVault: 'C:\\Users\\voce\\Obsidian\\Notas', obsidianFolder: 'SpeakToAll', obsidianCategories: 'Trabalho/Reuniões\nIdeias', obsidianAutoDetect: true,
     startWithWindows: false, closeToTray: true, theme: 'system', onboarded: true,
     enabledPlugins: ['maiuscula-inicial'], restrictedMode: false,
   };
@@ -136,6 +137,25 @@
       n.summary = '• Ponto principal da nota resumido pela IA local.\n• Segundo ponto relevante.\n• Próximos passos sugeridos.';
       return { title: n.title, summary: n.summary };
     },
+    async listModels() { await wait(300); return ['llama3.1', 'mistral', 'qwen2.5']; },
+    async pickObsidianVault() { settings.obsidianVault = 'C:\\Users\\voce\\Obsidian\\Notas'; emit('settings:changed', settings); return settings.obsidianVault; },
+    async obsidianSuggest(id) {
+      await wait(700);
+      const n = notes.find((x) => x.id === id);
+      return {
+        folders: ['Ideias', 'Pessoal', 'Trabalho', 'Trabalho/Clientes', 'Trabalho/Reuniões'],
+        tags: ['reuniao', 'cliente', 'ideia', 'prazo'],
+        presets: ['Trabalho/Reuniões', 'Ideias'],
+        suggestion: { title: n.title, folder: 'Trabalho/Clientes', tags: ['cliente', 'prazo'], body: n.text },
+        aiError: null,
+      };
+    },
+    async obsidianWrite(id, data) {
+      const rel = `${data.folder ? data.folder + '/' : ''}${data.title}.md`;
+      notes.find((x) => x.id === id).obsidianPath = rel;
+      return { path: rel, uri: 'obsidian://open' };
+    },
+    async openInObsidian() {},
     async chat(_id, messages) {
       const reply = `Com base na nota: ${messages[messages.length - 1].content.length > 40 ? 'essa é uma boa pergunta.' : 'certo.'} O trecho mais relevante fala sobre os próximos passos combinados.`;
       for (const word of reply.split(/(?<= )/)) { emit('ai:chunk', { delta: word }); await wait(40); }

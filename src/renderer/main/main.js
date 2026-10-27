@@ -151,6 +151,7 @@ async function openNote(id) {
   $('#note-title').value = n.title;
   $('#note-text').value = n.text;
   renderSummary(n.summary);
+  renderObsidianSent(n.obsidianPath);
   const segs = n.segments || [];
   $('#note-tabs').hidden = !segs.length;
   $('#note-segments').replaceChildren(...segs.map((s) => {
@@ -369,6 +370,90 @@ async function stopMeeting() {
 }
 $('#meeting-btn').addEventListener('click', () => (meeting ? stopMeeting() : startMeeting()));
 
+/* ---------- enviar ao Obsidian ---------- */
+let obsTags = [];
+
+function renderObsidianSent(relPath) {
+  const b = $('#note-obsidian');
+  b.classList.toggle('sent', !!relPath);
+  b.title = relPath ? `Já enviada: ${relPath}` : 'Enviar ao Obsidian';
+}
+
+function renderObsTags() {
+  $('#obs-tags').replaceChildren(...obsTags.map((tag) => {
+    const chip = el('span', 'chip', `#${tag}`);
+    const x = el('button', null, '×');
+    x.type = 'button';
+    x.setAttribute('aria-label', `Remover ${tag}`);
+    x.onclick = () => { obsTags = obsTags.filter((t) => t !== tag); renderObsTags(); };
+    chip.append(x);
+    return chip;
+  }));
+}
+
+function addObsTag(raw) {
+  const tag = String(raw).trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase();
+  if (tag && !obsTags.includes(tag)) { obsTags.push(tag); renderObsTags(); }
+}
+
+const fillDatalist = (sel, values) => $(sel).replaceChildren(...values.map((v) => new Option(v)));
+
+async function openObsidian() {
+  if (!settings.obsidianVault) {
+    toast('Escolha o vault do Obsidian em Configurações');
+    showView('settings');
+    return;
+  }
+  const btn = $('#note-obsidian');
+  btn.disabled = true; btn.textContent = 'Organizando…';
+  try {
+    const { folders, tags, presets, suggestion, aiError } = await api.obsidianSuggest(currentId);
+    fillDatalist('#obs-folders', [...new Set([...presets, ...folders])]);
+    fillDatalist('#obs-known-tags', tags);
+    $('#obs-title').value = suggestion.title;
+    $('#obs-folder').value = suggestion.folder;
+    $('#obs-body').value = suggestion.body;
+    obsTags = [];
+    suggestion.tags.forEach(addObsTag);
+    renderObsTags();
+    $('#obs-status').textContent = aiError ? `IA indisponível (${aiError}). Preencha à mão.` : '';
+    $('#obsidian').hidden = false;
+    $('#obs-title').focus();
+  } catch (err) {
+    toast(errMsg(err));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Obsidian';
+  }
+}
+
+$('#note-obsidian').addEventListener('click', openObsidian);
+$('#obs-cancel').addEventListener('click', () => ($('#obsidian').hidden = true));
+$('#obs-tag-input').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  addObsTag(e.target.value);
+  e.target.value = '';
+});
+$('#obs-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  addObsTag($('#obs-tag-input').value);
+  $('#obs-tag-input').value = '';
+  const save = $('#obs-save');
+  save.disabled = true;
+  try {
+    const { path } = await api.obsidianWrite(currentId, {
+      title: $('#obs-title').value, folder: $('#obs-folder').value, tags: obsTags, body: $('#obs-body').value,
+    });
+    $('#obsidian').hidden = true;
+    renderObsidianSent(path);
+    toast(`Salvo em ${path}`);
+  } catch (err) {
+    toast(`Falha ao salvar: ${errMsg(err)}`);
+  } finally {
+    save.disabled = false;
+  }
+});
+
 /* ---------- configurações ---------- */
 function bindSettings() {
   $$('[data-setting]').forEach((el) => {
@@ -386,6 +471,10 @@ function bindSettings() {
       el.onchange = () => saveSetting(key, el.value);
     }
   });
+  const preset = $('#set-ai-preset');
+  preset.value = [...preset.options].some((o) => o.value === settings.aiBaseUrl) ? settings.aiBaseUrl : '';
+  $('#set-obsidian-vault').textContent = settings.obsidianVault || 'Nenhum vault escolhido';
+  $('#set-obsidian-clear').hidden = !settings.obsidianVault;
 }
 
 async function saveSetting(key, value) {
@@ -421,6 +510,27 @@ $('#set-hotkey').addEventListener('click', async (e) => {
 $$('[data-preview]').forEach((b) => b.addEventListener('click', () => api.previewOverlay(b.dataset.preview)));
 $('#set-reinstall').addEventListener('click', () => openOnboarding(1));
 $('#set-onboarding').addEventListener('click', () => openOnboarding(0));
+$('#set-ai-preset').addEventListener('change', (e) => { if (e.target.value) saveSetting('aiBaseUrl', e.target.value); });
+$('#set-ai-models').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try {
+    const models = await api.listModels();
+    fillDatalist('#ai-models', models);
+    toast(models.length ? `${models.length} modelos encontrados` : 'Nenhum modelo encontrado');
+    $('[data-setting="aiModel"]').focus();
+  } catch (err) {
+    toast(`IA indisponível: ${errMsg(err)}`);
+  } finally {
+    btn.disabled = false;
+  }
+});
+$('#set-obsidian-pick').addEventListener('click', async () => {
+  try {
+    if (await api.pickObsidianVault()) { settings = await api.getSettings(); bindSettings(); toast('Vault conectado'); }
+  } catch (err) { toast(errMsg(err)); }
+});
+$('#set-obsidian-clear').addEventListener('click', () => saveSetting('obsidianVault', ''));
 
 /* ---------- plugins ---------- */
 // Erros do ipcMain chegam como "Error invoking remote method 'x': Error: msg".
