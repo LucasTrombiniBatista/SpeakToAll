@@ -101,6 +101,7 @@
                     <button data-fmt="srt">Legenda <span class="mono muted">.srt</span></button>
                   </div>
                 </div>
+                <button class="btn btn-sm" id="note-obsidian" title="Enviar ao Obsidian">Obsidian</button>
                 <button class="btn btn-sm btn-primary" id="note-ai">✦ IA</button>
                 <button class="btn btn-sm btn-ghost btn-danger" id="note-delete" title="Excluir">Excluir</button>
               </div>
@@ -323,14 +324,56 @@
           </section>
 
           <section class="group">
-            <h2>IA local <span class="pill cobalt">opcional</span></h2>
+            <h2>IA <span class="pill cobalt">opcional</span></h2>
             <div class="field">
-              <div><strong>Endpoint</strong><p class="muted">Qualquer API compatível com OpenAI (Ollama, LM Studio…).</p></div>
+              <div><strong>Provedor</strong><p class="muted">Preenche o endpoint. Local não envia nada para a internet.</p></div>
+              <select class="select" id="set-ai-preset">
+                <option value="">Personalizado</option>
+                <option value="http://localhost:11434/v1">Ollama (local)</option>
+                <option value="http://localhost:1234/v1">LM Studio (local)</option>
+                <option value="https://api.openai.com/v1">OpenAI</option>
+                <option value="https://openrouter.ai/api/v1">OpenRouter</option>
+                <option value="https://api.groq.com/openai/v1">Groq</option>
+              </select>
+            </div>
+            <div class="field">
+              <div><strong>Endpoint</strong><p class="muted">Qualquer API compatível com OpenAI.</p></div>
               <input class="input mono" data-setting="aiBaseUrl">
             </div>
             <div class="field">
+              <div><strong>Chave da API</strong><p class="muted">Só para provedores na nuvem. Fica salva neste computador.</p></div>
+              <input class="input mono" type="password" data-setting="aiApiKey" autocomplete="off" placeholder="sk-…">
+            </div>
+            <div class="field">
               <div><strong>Modelo</strong></div>
-              <input class="input mono" data-setting="aiModel">
+              <div class="row-tight">
+                <input class="input mono" data-setting="aiModel" list="ai-models">
+                <datalist id="ai-models"></datalist>
+                <button class="btn btn-sm" id="set-ai-models">Listar modelos</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2>Integrações</h2>
+            <div class="field">
+              <div><strong>Vault do Obsidian</strong><p class="muted mono" id="set-obsidian-vault">Nenhum vault escolhido</p></div>
+              <div class="row-tight">
+                <button class="btn btn-sm btn-ghost" id="set-obsidian-clear" hidden>Remover</button>
+                <button class="btn" id="set-obsidian-pick">Escolher pasta</button>
+              </div>
+            </div>
+            <div class="field">
+              <div><strong>Pasta padrão</strong><p class="muted">Usada quando a IA não sugere outra. Vazio = raiz do vault.</p></div>
+              <input class="input mono" data-setting="obsidianFolder" placeholder="SpeakToAll">
+            </div>
+            <div class="field field-col">
+              <div><strong>Categorias prévias</strong><p class="muted">Uma por linha. A IA dá preferência a elas ao escolher pasta e tags.</p></div>
+              <textarea class="textarea" data-setting="obsidianCategories" placeholder="Trabalho/Reuniões&#10;Ideias&#10;Pessoal"></textarea>
+            </div>
+            <div class="field">
+              <div><strong>Detectar categorias novas</strong><p class="muted">Desligado, a IA usa só as categorias prévias.</p></div>
+              <span class="toggle"><input type="checkbox" data-setting="obsidianAutoDetect"><span></span></span>
             </div>
           </section>
 
@@ -416,6 +459,32 @@
         <button class="btn btn-primary" id="ob-next">Começar</button>
       </footer>
     </div>
+  </div>
+
+  <!-- ENVIAR AO OBSIDIAN -->
+  <div class="modal" id="obsidian" hidden>
+    <form class="modal-card obs-card" id="obs-form">
+      <header class="obs-head">
+        <div class="eyebrow">Enviar ao Obsidian</div>
+        <h2 class="display">Revise antes de salvar</h2>
+        <p class="muted" id="obs-status"></p>
+      </header>
+      <label class="obs-field"><strong>Título</strong><input class="input" id="obs-title" required></label>
+      <label class="obs-field"><strong>Pasta</strong>
+        <input class="input mono" id="obs-folder" list="obs-folders" placeholder="raiz do vault">
+        <datalist id="obs-folders"></datalist>
+      </label>
+      <div class="obs-field"><strong>Tags</strong>
+        <div class="chips" id="obs-tags"></div>
+        <input class="input" id="obs-tag-input" list="obs-known-tags" placeholder="Adicionar tag e Enter">
+        <datalist id="obs-known-tags"></datalist>
+      </div>
+      <label class="obs-field"><strong>Conteúdo</strong><textarea class="textarea obs-body" id="obs-body"></textarea></label>
+      <footer class="modal-foot">
+        <button class="btn btn-ghost" type="button" id="obs-cancel">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="obs-save">Salvar no vault</button>
+      </footer>
+    </form>
   </div>
 
   <div class="toast" id="toast" role="status" hidden></div>
