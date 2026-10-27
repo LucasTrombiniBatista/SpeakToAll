@@ -400,7 +400,7 @@ const fillDatalist = (sel, values) => $(sel).replaceChildren(...values.map((v) =
 
 async function openObsidian() {
   if (!settings.obsidianVault) {
-    toast('Escolha o vault do Obsidian em Configurações');
+    toast('Escolha a pasta do Obsidian em Configurações');
     showView('settings');
     return;
   }
@@ -473,8 +473,17 @@ function bindSettings() {
   });
   const preset = $('#set-ai-preset');
   preset.value = [...preset.options].some((o) => o.value === settings.aiBaseUrl) ? settings.aiBaseUrl : '';
-  $('#set-obsidian-vault').textContent = settings.obsidianVault || 'Nenhum vault escolhido';
+  $('#set-obsidian-vault').textContent = settings.obsidianVault || 'Nenhuma pasta escolhida';
   $('#set-obsidian-clear').hidden = !settings.obsidianVault;
+  renderObsidianStatus();
+}
+
+async function renderObsidianStatus() {
+  const warn = $('#set-obsidian-warn');
+  if (!settings.obsidianVault) { warn.hidden = true; return; }
+  const { exists, isVault } = await api.obsidianStatus();
+  warn.textContent = exists ? 'Esta pasta não é um vault do Obsidian. Os arquivos .md serão salvos normalmente.' : 'Esta pasta não existe mais. Escolha outra.';
+  warn.hidden = exists && isVault;
 }
 
 async function saveSetting(key, value) {
@@ -527,7 +536,7 @@ $('#set-ai-models').addEventListener('click', async (e) => {
 });
 $('#set-obsidian-pick').addEventListener('click', async () => {
   try {
-    if (await api.pickObsidianVault()) { settings = await api.getSettings(); bindSettings(); toast('Vault conectado'); }
+    if (await api.pickObsidianVault()) { settings = await api.getSettings(); bindSettings(); toast('Pasta conectada'); }
   } catch (err) { toast(errMsg(err)); }
 });
 $('#set-obsidian-clear').addEventListener('click', () => saveSetting('obsidianVault', ''));

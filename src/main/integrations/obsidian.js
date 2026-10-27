@@ -7,6 +7,11 @@ const MAX_FILES_SCANNED = 2000;
 const HEAD_BYTES = 4096;
 const IGNORED = new Set(['.obsidian', '.trash', '.git', 'node_modules']);
 
+function isFolder(dir) {
+  try { return fs.statSync(dir).isDirectory(); } catch { return false; }
+}
+
+// Qualquer pasta serve como destino; ter .obsidian/ é só recomendado (habilita o link obsidian://).
 function isVault(dir) {
   try { return fs.statSync(path.join(dir, '.obsidian')).isDirectory(); } catch { return false; }
 }
@@ -49,7 +54,7 @@ function frontmatterTags(text) {
 
 // Lista pastas (até MAX_DEPTH níveis) e tags já usadas, para a IA reaproveitar.
 function scanVault(vault) {
-  if (!vault || !isVault(vault)) throw new Error('A pasta escolhida não é um vault do Obsidian (falta .obsidian/)');
+  if (!vault || !isFolder(vault)) throw new Error('Pasta de destino não configurada ou inexistente');
   const folders = [];
   const tags = new Map();
   let files = 0;
@@ -95,7 +100,7 @@ function buildMarkdown({ title, tags = [], body = '' }, note = {}) {
 // Grava <vault>/<folder>/<title>.md sem nunca sobrescrever (acrescenta " 2", " 3"…).
 // Devolve o caminho relativo ao vault.
 function writeNote(vault, { title, folder, tags, body }, note = {}) {
-  if (!vault || !isVault(vault)) throw new Error('Vault do Obsidian não configurado ou inválido');
+  if (!vault || !isFolder(vault)) throw new Error('Pasta de destino não configurada ou inexistente');
   const relDir = safeFolder(folder);
   const dir = path.join(vault, relDir);
   const rootAbs = path.resolve(vault);
@@ -113,4 +118,4 @@ function openUri(vault, relPath) {
   return `obsidian://open?vault=${encodeURIComponent(path.basename(vault))}&file=${encodeURIComponent(relPath.replace(/\.md$/, ''))}`;
 }
 
-module.exports = { isVault, scanVault, writeNote, buildMarkdown, frontmatterTags, safeFolder, openUri };
+module.exports = { isFolder, isVault, scanVault, writeNote, buildMarkdown, frontmatterTags, safeFolder, openUri };
