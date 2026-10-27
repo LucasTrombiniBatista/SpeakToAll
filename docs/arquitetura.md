@@ -77,7 +77,7 @@ Tudo em `%APPDATA%\speaktoall\`:
 | `plugin-data/<id>.json` | Dados salvos por cada plugin |
 | `plugins-catalog.json` | Último catálogo da loja |
 
-Notas enviadas ao Obsidian são gravadas no vault escolhido pelo usuário, fora desta pasta (ver [integracoes.md](integracoes.md)).
+Notas enviadas ao Obsidian são gravadas na pasta escolhida pelo usuário (de preferência um vault), fora desta pasta (ver [integracoes.md](integracoes.md)).
 
 ## Segurança
 
@@ -85,4 +85,4 @@ Notas enviadas ao Obsidian são gravadas no vault escolhido pelo usuário, fora 
 - Permissões de mídia liberadas só para `media`, `audioCapture`, `display-capture`.
 - CSP nas páginas; `open-external` aceita apenas `http(s)://`.
 - `aiApiKey` fica em `settings.json` em texto puro e não aparece em `getSettings()` dos plugins.
-- A gravação no vault do Obsidian limpa os nomes, ignora `..` e confere se o destino está dentro do vault.
+- A gravação no vault do Obsidian limpa os nomes, ignora `..` e confere se o destino está dentro da pasta escolhida.
