@@ -184,3 +184,4 @@
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: var(--r-pill); background: var(--sta-cobalt-soft); color: var(--sta-cobalt); font: 500 12px var(--font-mono); }
 .chip button { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 4px; font-size: 13px; line-height: 1; }
 #note-obsidian.sent::after { content: ' ✓'; color: var(--sta-cobalt); }
+.obs-warn { color: var(--sta-muted); font-style: italic; }
