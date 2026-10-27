@@ -54,6 +54,21 @@ O injetor pode ser testado sozinho: `powershell -File src/main/injector.ps1`, di
 
 Com o modelo `base` em CPU (i7-1185G7), um WAV de 9 s gerado por TTS foi transcrito em **~1,7 s** e injetado corretamente nos modos `paste` e `type`; a nota foi salva em `%APPDATA%\speaktoall\notes`. Erros de nomes próprios (ex.: "SpeakToAll") melhoram colocando a palavra no **prompt inicial** ou usando um modelo maior.
 
+### Testar a integração com o Obsidian
+
+`src/main/integrations/obsidian.js` roda em Node puro:
+
+```bash
+mkdir -p /tmp/vault/.obsidian
+node -e "
+const o=require('./src/main/integrations/obsidian');
+console.log(o.scanVault('/tmp/vault'));
+console.log(o.writeNote('/tmp/vault',{title:'Teste',folder:'Ideias',tags:['ideia'],body:'texto'},{createdAt:Date.now()}));
+"
+```
+
+Para testar a interface no Electron enquanto outra instância do app está aberta, use outra pasta de dados (o bloqueio de instância única vale por pasta): `npx electron . --user-data-dir=<pasta-temporária>`.
+
 ## Armadilhas conhecidas
 
 - **Overlay precisa de `focusable:false`** e `showInactive()`, senão o foco sai do app de destino e o Ctrl+V cai no lugar errado.
@@ -71,4 +86,5 @@ Com o modelo `base` em CPU (i7-1185G7), um WAV de 9 s gerado por TTS foi transcr
 - Cancelamento de download no meio não testado.
 - **Empacotamento**: falta a seção `build` do `electron-builder` (NSIS + portable, `npmRebuild: false`) com `asarUnpack` para `node_modules/uiohook-napi/**` e `src/main/injector.ps1`.
 - Traduções: os textos da interface estão em português direto no HTML; `locales/*.json` cobrem só a navegação.
+- Integrações: só Obsidian por enquanto; Notion e outros estão planejados (ver [integracoes.md](integracoes.md)).
 - Binários do whisper.cpp não são assinados — o SmartScreen pode pedir "Executar assim mesmo".
