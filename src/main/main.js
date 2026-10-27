@@ -16,6 +16,7 @@ const windows = require('./windows');
 const dictation = require('./dictation');
 const plugins = require('./plugins');
 const store = require('./plugins/store');
+const obsidian = require('./integrations/obsidian');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
@@ -86,6 +87,42 @@ function registerIpc(d) {
     chatAbort?.abort();
     chatAbort = new AbortController();
     ai.chat(notes.get(id), messages, config.get(), (c) => windows.send('ai:chunk', c), chatAbort.signal);
+  });
+  ipcMain.handle('ai:models', () => ai.listModels(config.get()));
+
+  ipcMain.handle('obsidian:pick-vault', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(windows.getMain(), { properties: ['openDirectory'] });
+    if (canceled || !filePaths[0]) return null;
+    if (!obsidian.isVault(filePaths[0])) throw new Error('A pasta escolhida não é um vault do Obsidian (falta .obsidian/)');
+    config.set({ obsidianVault: filePaths[0] });
+    return filePaths[0];
+  });
+  // Sugestão para a tela de revisão. Se a IA falhar, devolve os padrões e o erro para o usuário preencher à mão.
+  ipcMain.handle('obsidian:suggest', async (_e, id) => {
+    const s = config.get();
+    const note = notes.get(id);
+    if (!note) throw new Error('Nota não encontrada');
+    const { folders, tags } = obsidian.scanVault(s.obsidianVault);
+    const presets = String(s.obsidianCategories || '').split(/[\n,]/).map((x) => x.trim()).filter(Boolean);
+    const fallback = { title: note.title, folder: s.obsidianFolder || '', tags: [], body: note.text || '' };
+    try {
+      const suggestion = await ai.categorize(note, { folders, tags, presets, autoDetect: s.obsidianAutoDetect, defaultFolder: s.obsidianFolder }, s);
+      return { folders, tags, presets, suggestion, aiError: null };
+    } catch (err) {
+      return { folders, tags, presets, suggestion: fallback, aiError: err.message };
+    }
+  });
+  ipcMain.handle('obsidian:write', (_e, id, data) => {
+    const vault = config.get().obsidianVault;
+    const note = notes.get(id);
+    if (!note) throw new Error('Nota não encontrada');
+    const rel = obsidian.writeNote(vault, data, note);
+    notes.update(id, { obsidianPath: rel });
+    return { path: rel, uri: obsidian.openUri(vault, rel) };
+  });
+  ipcMain.handle('obsidian:open', (_e, rel) => {
+    const vault = config.get().obsidianVault;
+    if (vault && rel) shell.openExternal(obsidian.openUri(vault, rel));
   });
 
   ipcMain.handle('hotkey:capture', async () => {
