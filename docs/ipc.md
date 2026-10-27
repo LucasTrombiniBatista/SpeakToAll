@@ -23,9 +23,10 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `summarize(id)` | `ai:summarize` | `{title, summary}` (já salvo na nota) |
 | `chat(id, messages)` | `ai:chat` | — (resposta chega por `ai:chunk`) |
 | `listModels()` | `ai:models` | ids de `GET /models` do endpoint configurado |
-| `pickObsidianVault()` | `obsidian:pick-vault` | caminho escolhido (já salvo em `obsidianVault`) ou `null`; erro se faltar `.obsidian/` |
+| `pickObsidianVault()` | `obsidian:pick-vault` | `{path, isVault}` (caminho já salvo em `obsidianVault`) ou `null`; qualquer pasta é aceita |
+| `obsidianStatus()` | `obsidian:status` | `{exists, isVault}` da pasta configurada (`isVault` = tem `.obsidian/`) |
 | `obsidianSuggest(id)` | `obsidian:suggest` | `{folders, tags, presets, suggestion: {title, folder, tags, body}, aiError}`: com a IA fora do ar, `suggestion` traz os padrões e `aiError` traz a mensagem |
-| `obsidianWrite(id, {title, folder, tags, body})` | `obsidian:write` | `{path, uri}`: caminho relativo ao vault e link `obsidian://` (o caminho fica salvo em `obsidianPath` na nota) |
+| `obsidianWrite(id, {title, folder, tags, body})` | `obsidian:write` | `{path, uri}`: caminho relativo à pasta e link `obsidian://` (`null` se a pasta não for um vault) (o caminho fica salvo em `obsidianPath` na nota) |
 | `openInObsidian(relPath)` | `obsidian:open` | abre a nota no Obsidian |
 | `captureHotkey()` | `hotkey:capture` | rótulo da tecla (ex.: `"Ctrl+Shift+K"`) ou `null` |
 | `previewOverlay(state)` | `overlay:preview` | mostra o overlay no estado pedido |
