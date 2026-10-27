@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('wp', {
   chat: (id, messages) => ipcRenderer.invoke('ai:chat', id, messages),
   listModels: () => ipcRenderer.invoke('ai:models'),
   pickObsidianVault: () => ipcRenderer.invoke('obsidian:pick-vault'),
+  obsidianStatus: () => ipcRenderer.invoke('obsidian:status'),
   obsidianSuggest: (id) => ipcRenderer.invoke('obsidian:suggest', id),
   obsidianWrite: (id, data) => ipcRenderer.invoke('obsidian:write', id, data),
   openInObsidian: (relPath) => ipcRenderer.invoke('obsidian:open', relPath),
