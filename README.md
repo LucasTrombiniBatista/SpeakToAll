@@ -12,8 +12,9 @@ Stack: Electron + JavaScript puro como casca, reconhecimento de voz pelos binár
 - **Notas** — todo ditado vira nota pesquisável; exporta `.txt`, `.md` e `.srt`.
 - **Importar áudio** — MP3/WAV/M4A/vídeo transcritos em fila, com o texto aparecendo ao vivo.
 - **Reunião** — grava o áudio do sistema (Teams/Meet/Zoom) + microfone e transcreve.
-- **IA local opcional** — resumo e chat sobre a nota via API compatível com OpenAI (Ollama, LM Studio).
-- **100% offline** — o áudio nunca sai do computador.
+- **IA opcional** — resumo e chat sobre a nota via API compatível com OpenAI: local (Ollama, LM Studio) ou na nuvem com chave (OpenAI, OpenRouter, Groq).
+- **Integração com o Obsidian** — envia a nota ao seu vault com título, pasta e tags sugeridos pela IA; você revisa e confirma.
+- **Offline por padrão** — o áudio nunca sai do computador; o texto só sai se você escolher uma IA na nuvem.
 
 ## Requisitos
 
@@ -56,4 +57,5 @@ SpeakToAll/
 | [docs/modulos.md](docs/modulos.md) | Cada módulo do backend e do front-end, API e eventos |
 | [docs/ipc.md](docs/ipc.md) | Contrato `window.wp`: canais, eventos, comandos do overlay, formatos |
 | [docs/design-system.md](docs/design-system.md) | Identidade visual (Paper), tokens, componentes |
+| [docs/integracoes.md](docs/integracoes.md) | Integração com o Obsidian e como adicionar novas |
 | [docs/desenvolvimento.md](docs/desenvolvimento.md) | Como testar, armadilhas conhecidas, pendências |

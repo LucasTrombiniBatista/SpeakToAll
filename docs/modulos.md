@@ -52,7 +52,10 @@ Um `<id>.json` por nota. `create`, `get`, `list` (sem segmentos, mais recente pr
 Fila **serial** de transcrição de arquivos. `init({notes, transcribeFn, tmpDir})`, `enqueue({name, wavBuffer, durationMs, source, keepAudio, audioDir})` → id da nota (= id do job), `cancel(id)`. Emite `'update'` com `{id, name, status, progress, segments}`.
 
 ### `ai.js`
-`summarize(note, settings)` → `{title, summary}` (JSON pedido ao modelo, extraído de forma robusta). `chat(note, messages, settings, onChunk, signal)` → streaming SSE; erros chegam como `onChunk({error})`.
+`summarize(note, settings)` → `{title, summary}` (JSON pedido ao modelo, extraído de forma robusta). `chat(note, messages, settings, onChunk, signal)` → streaming SSE; erros chegam como `onChunk({error})`. `categorize(note, {folders, tags, presets, autoDetect, defaultFolder}, settings)` → `{title, folder, tags, body}` para o Obsidian. `listModels(settings)` → ids de `GET /models`. Todas as chamadas mandam `Authorization: Bearer <aiApiKey>` quando há chave.
+
+### `integrations/obsidian.js`
+Node puro. `isVault(dir)`, `scanVault(vault)` → `{folders, tags}` (pastas até 3 níveis, tags do frontmatter por frequência), `writeNote(vault, {title, folder, tags, body}, note)` → caminho relativo (nunca sobrescreve, nunca sai do vault), `buildMarkdown`, `openUri`. Ver [integracoes.md](integracoes.md).
 
 ### `tray.js`
 Ícone desenhado em código (barras do logo; vermelho ao gravar). Menu: Abrir, Gravar/Parar, Plugins (comandos), Sair. `setRecording(bool)`, `setPluginCommands(cmds)`.
@@ -75,7 +78,7 @@ Sistema de plugins (ver [plugins.md](plugins.md)).
 | `common/audio.js` | `encodeWav`, `fileToWav` (reamostra 16 kHz), `createRecorder(streams, onLevel)`, `fmtClock` → `window.staAudio` |
 | `common/pcm-worklet.js` | AudioWorklet que repassa blocos `Float32Array` |
 | `common/wp-mock.js` | Implementação falsa de `window.wp` para abrir as páginas no navegador |
-| `main/index.html · main.css · main.js` | Janela principal: notas, importar, reunião, configurações, onboarding, painel de IA |
+| `main/index.html · main.css · main.js` | Janela principal: notas, importar, reunião, configurações, onboarding, painel de IA, revisão do envio ao Obsidian |
 | `overlay/overlay.html · overlay.js` | Pílula: estados gravando / transcrevendo / pronto / erro, barras RMS, bipes |
 
 ## Preloads — `src/preload/`
