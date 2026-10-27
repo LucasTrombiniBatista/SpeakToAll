@@ -138,7 +138,8 @@
       return { title: n.title, summary: n.summary };
     },
     async listModels() { await wait(300); return ['llama3.1', 'mistral', 'qwen2.5']; },
-    async pickObsidianVault() { settings.obsidianVault = 'C:\\Users\\voce\\Obsidian\\Notas'; emit('settings:changed', settings); return settings.obsidianVault; },
+    async pickObsidianVault() { settings.obsidianVault = 'C:\\Users\\voce\\Obsidian\\Notas'; emit('settings:changed', settings); return { path: settings.obsidianVault, isVault: false }; },
+    async obsidianStatus() { return { exists: !!settings.obsidianVault, isVault: false }; },
     async obsidianSuggest(id) {
       await wait(700);
       const n = notes.find((x) => x.id === id);

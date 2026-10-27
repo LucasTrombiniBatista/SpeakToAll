@@ -55,7 +55,7 @@ Fila **serial** de transcrição de arquivos. `init({notes, transcribeFn, tmpDir
 `summarize(note, settings)` → `{title, summary}` (JSON pedido ao modelo, extraído de forma robusta). `chat(note, messages, settings, onChunk, signal)` → streaming SSE; erros chegam como `onChunk({error})`. `categorize(note, {folders, tags, presets, autoDetect, defaultFolder}, settings)` → `{title, folder, tags, body}` para o Obsidian. `listModels(settings)` → ids de `GET /models`. Todas as chamadas mandam `Authorization: Bearer <aiApiKey>` quando há chave.
 
 ### `integrations/obsidian.js`
-Node puro. `isVault(dir)`, `scanVault(vault)` → `{folders, tags}` (pastas até 3 níveis, tags do frontmatter por frequência), `writeNote(vault, {title, folder, tags, body}, note)` → caminho relativo (nunca sobrescreve, nunca sai do vault), `buildMarkdown`, `openUri`. Ver [integracoes.md](integracoes.md).
+Node puro. `isFolder(dir)` (exigido para ler e gravar), `isVault(dir)` (tem `.obsidian/`; só informativo), `scanVault(vault)` → `{folders, tags}` (pastas até 3 níveis, tags do frontmatter por frequência), `writeNote(vault, {title, folder, tags, body}, note)` → caminho relativo (nunca sobrescreve, nunca sai do vault), `buildMarkdown`, `openUri`. Ver [integracoes.md](integracoes.md).
 
 ### `tray.js`
 Ícone desenhado em código (barras do logo; vermelho ao gravar). Menu: Abrir, Gravar/Parar, Plugins (comandos), Sair. `setRecording(bool)`, `setPluginCommands(cmds)`.
