@@ -93,9 +93,12 @@ function registerIpc(d) {
   ipcMain.handle('obsidian:pick-vault', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(windows.getMain(), { properties: ['openDirectory'] });
     if (canceled || !filePaths[0]) return null;
-    if (!obsidian.isVault(filePaths[0])) throw new Error('A pasta escolhida não é um vault do Obsidian (falta .obsidian/)');
     config.set({ obsidianVault: filePaths[0] });
-    return filePaths[0];
+    return { path: filePaths[0], isVault: obsidian.isVault(filePaths[0]) };
+  });
+  ipcMain.handle('obsidian:status', () => {
+    const vault = config.get().obsidianVault;
+    return { exists: !!vault && obsidian.isFolder(vault), isVault: !!vault && obsidian.isVault(vault) };
   });
   // Sugestão para a tela de revisão. Se a IA falhar, devolve os padrões e o erro para o usuário preencher à mão.
   ipcMain.handle('obsidian:suggest', async (_e, id) => {
@@ -118,7 +121,7 @@ function registerIpc(d) {
     if (!note) throw new Error('Nota não encontrada');
     const rel = obsidian.writeNote(vault, data, note);
     notes.update(id, { obsidianPath: rel });
-    return { path: rel, uri: obsidian.openUri(vault, rel) };
+    return { path: rel, uri: obsidian.isVault(vault) ? obsidian.openUri(vault, rel) : null };
   });
   ipcMain.handle('obsidian:open', (_e, rel) => {
     const vault = config.get().obsidianVault;
