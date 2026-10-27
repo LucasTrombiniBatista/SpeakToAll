@@ -22,6 +22,11 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `meetingDone(wav, {title, durationMs})` | `meeting:done` | id do job/nota |
 | `summarize(id)` | `ai:summarize` | `{title, summary}` (já salvo na nota) |
 | `chat(id, messages)` | `ai:chat` | — (resposta chega por `ai:chunk`) |
+| `listModels()` | `ai:models` | ids de `GET /models` do endpoint configurado |
+| `pickObsidianVault()` | `obsidian:pick-vault` | caminho escolhido (já salvo em `obsidianVault`) ou `null`; erro se faltar `.obsidian/` |
+| `obsidianSuggest(id)` | `obsidian:suggest` | `{folders, tags, presets, suggestion: {title, folder, tags, body}, aiError}`: com a IA fora do ar, `suggestion` traz os padrões e `aiError` traz a mensagem |
+| `obsidianWrite(id, {title, folder, tags, body})` | `obsidian:write` | `{path, uri}`: caminho relativo ao vault e link `obsidian://` (o caminho fica salvo em `obsidianPath` na nota) |
+| `openInObsidian(relPath)` | `obsidian:open` | abre a nota no Obsidian |
 | `captureHotkey()` | `hotkey:capture` | rótulo da tecla (ex.: `"Ctrl+Shift+K"`) ou `null` |
 | `previewOverlay(state)` | `overlay:preview` | mostra o overlay no estado pedido |
 | `openExternal(url)` | `open-external` | só `http(s)://` |
@@ -77,10 +82,11 @@ O overlay **sempre** devolve o áudio ao parar; quem descarta gravações < 350 
   "language": "pt",
   "source": "dictation",
   "audioFile": null,
-  "summary": null
+  "summary": null,
+  "obsidianPath": null
 }
 ```
 
-`source`: `dictation` · `import` · `meeting`. Tempos em milissegundos.
+`source`: `dictation` · `import` · `meeting`. Tempos em milissegundos. `obsidianPath` só existe depois de enviar a nota ao Obsidian.
 
-**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyCode`, `hotkeyModifiers`, `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `theme`, `uiLanguage`, `startWithWindows`, `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.
+**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyCode`, `hotkeyModifiers`, `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `aiApiKey`, `obsidianVault`, `obsidianFolder`, `obsidianCategories` (uma por linha), `obsidianAutoDetect`, `theme`, `uiLanguage`, `startWithWindows`, `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.
