@@ -171,3 +171,16 @@
   .note { padding: 20px 16px; }
   .field { flex-direction: column; align-items: stretch; }
 }
+
+/* Enviar ao Obsidian */
+.obs-card { width: min(640px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; gap: 14px; }
+.obs-head h2 { margin: 4px 0 0; font-size: 28px; line-height: 32px; }
+.obs-head p { margin: 6px 0 0; }
+.obs-head p:empty { display: none; }
+.obs-field { display: flex; flex-direction: column; gap: 6px; }
+.obs-body { min-height: 200px; font-family: var(--font-mono); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips:empty { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: var(--r-pill); background: var(--sta-cobalt-soft); color: var(--sta-cobalt); font: 500 12px var(--font-mono); }
+.chip button { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 4px; font-size: 13px; line-height: 1; }
+#note-obsidian.sent::after { content: ' ✓'; color: var(--sta-cobalt); }
