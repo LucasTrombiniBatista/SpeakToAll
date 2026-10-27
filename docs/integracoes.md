@@ -6,9 +6,11 @@ Integrações enviam notas do SpeakToAll para outros aplicativos. Ficam em **Con
 
 Um vault do Obsidian é só uma pasta de arquivos `.md` com uma subpasta `.obsidian/`. Por isso a integração lê e grava direto no disco: não precisa instalar nada no Obsidian, e funciona com ele aberto ou fechado.
 
+O destino pode ser **qualquer pasta**. Recomendamos seguir o padrão de vault do Obsidian para ter a melhor experiência: com `.obsidian/`, você pode abrir a pasta como vault no Obsidian e usar o link `obsidian://` para a nota. Sem essa subpasta, os `.md` são gravados da mesma forma, e a tela de configurações mostra só um aviso.
+
 ### Configurar
 
-1. **Configurações > Integrações > Vault do Obsidian > Escolher pasta.** A pasta precisa conter `.obsidian/`.
+1. **Configurações > Integrações > Pasta do Obsidian (vault) > Escolher pasta.** Qualquer pasta é aceita. Um vault do Obsidian (com `.obsidian/`) é o recomendado.
 2. **Pasta padrão**: para onde a nota vai quando a IA não sugere outra pasta. Vazio = raiz do vault.
 3. **Categorias prévias** (opcional): uma por linha, por exemplo `Trabalho/Reuniões`. A IA dá preferência a elas.
 4. **Detectar categorias novas**: com essa opção desligada, a IA usa só as categorias prévias.
@@ -50,7 +52,7 @@ Combinamos a entrega para sexta.
 - O bloco `[!summary]` só aparece se a nota tiver um resumo gerado pela IA.
 - `origin` é `dictation`, `import` ou `meeting`. `duration` está em segundos.
 - Tags são normalizadas: sem `#`, com espaços trocados por `-` e em minúsculas.
-- Caracteres proibidos em nomes de arquivo, `..` e caminhos absolutos são removidos. Assim, nada é gravado fora do vault.
+- Caracteres proibidos em nomes de arquivo, `..` e caminhos absolutos são removidos. Assim, nada é gravado fora da pasta escolhida.
 
 ### Provedores de IA
 
