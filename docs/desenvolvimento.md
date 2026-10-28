@@ -106,6 +106,29 @@ Os relatórios ficam em `docs/qa/`.
 
 Se aparecer um retângulo preto em volta da pílula sobre algum app, confira em `src/main/windows.js` que a janela overlay tem `transparent: true` + `backgroundColor: '#00000000'` e que `showOverlay()` espera o `did-finish-load`. Se persistir só sobre apps com aceleração de GPU, teste rodar com `--disable-direct-composition`.
 
+## Distribuição e atualizações
+
+O instalador é gerado pelo [electron-builder](https://www.electron.build/) (NSIS, instala por usuário em `%LOCALAPPDATA%`, sem pedir admin) e as atualizações vêm do [electron-updater](https://www.electron.build/auto-update), que lê o `latest.yml` do último **GitHub Release** do repositório.
+
+```bash
+npm run dist      # gera dist/SpeakToAll Setup <versão>.exe localmente (não publica)
+```
+
+**Publicar uma versão** (o CI faz o resto em `.github/workflows/release.yml`):
+
+```bash
+npm version patch   # ou minor/major: sobe a versão, cria commit e tag vX.Y.Z
+git push --follow-tags
+```
+
+A tag dispara o workflow: testes, build e upload do instalador + `latest.yml` para o Release. Push comum na `main` **não** gera atualização. O repositório precisa ser público para o app ler os Releases.
+
+**No app instalado:** checa no boot e a cada 6 h (desligável em Configurações). Se houver versão nova, um diálogo pergunta se quer atualizar; aceito, baixa e oferece reiniciar (ou instala ao sair). Também dá para checar pela bandeja ou pelo botão em Configurações. Com `npm start` o updater fica desligado.
+
+Dados do usuário (configurações, notas, motor e modelos) ficam em `%APPDATA%\speaktoall` e sobrevivem às atualizações.
+
+Limitações atuais: o instalador não é assinado (o SmartScreen mostra "editor desconhecido" na primeira instalação) e usa o ícone padrão do Electron (falta um `build/icon.ico` 256×256).
+
 ## Testes automatizados
 
 ```bash

@@ -58,7 +58,10 @@ Fila **serial** de transcrição de arquivos. `init({notes, transcribeFn, tmpDir
 Node puro. `isFolder(dir)` (exigido para ler e gravar), `isVault(dir)` (tem `.obsidian/`; só informativo), `scanVault(vault)` → `{folders, tags}` (pastas até 3 níveis, tags do frontmatter por frequência), `writeNote(vault, {title, folder, tags, body}, note)` → caminho relativo (nunca sobrescreve, nunca sai do vault), `buildMarkdown`, `openUri`. Ver [integracoes.md](integracoes.md).
 
 ### `tray.js`
-Ícone desenhado em código (barras do logo; vermelho ao gravar). Menu: Abrir, Gravar/Parar, Plugins (comandos), Sair. `setRecording(bool)`, `setPluginCommands(cmds)`.
+Ícone desenhado em código (barras do logo; vermelho ao gravar). Menu: Abrir, Gravar/Parar, Plugins (comandos), Verificar atualizações (só no app instalado), Sair. `setRecording(bool)`, `setPluginCommands(cmds)`.
+
+### `updater.js`
+Auto-update via GitHub Releases (`electron-updater`). Só ativo com `app.isPackaged`; fora disso o estado é `unsupported`. `autoDownload = false`: nada é baixado sem o usuário aceitar. `init({autoUpdater, enabled, ask})` (o `ask(kind, info)` mostra o diálogo nativo e devolve se o usuário aceitou), `schedule(on)` (checa no boot e a cada 6 h, conforme `autoCheckUpdates`), `check(manual)`, `download()`, `install()`. Emite `'status'`. Ver [desenvolvimento.md](desenvolvimento.md#distribuição-e-atualizações).
 
 ### `plugins/`
 Sistema de plugins (ver [plugins.md](plugins.md)).

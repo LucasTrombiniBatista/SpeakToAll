@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state', 'plugins:changed', 'plugins:notice'];
+const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state', 'plugins:changed', 'plugins:notice', 'update:status'];
 
 contextBridge.exposeInMainWorld('wp', {
   isMock: false,
@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld('wp', {
   uninstallPlugin: (id) => ipcRenderer.invoke('store:uninstall', id),
   checkPluginUpdates: () => ipcRenderer.invoke('store:updates'),
   updatePlugin: (id) => ipcRenderer.invoke('store:update', id),
+  updateStatus: () => ipcRenderer.invoke('update:status'),
+  checkUpdates: () => ipcRenderer.invoke('update:check'),
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
   on: (event, cb) => {
     if (!EVENTS.includes(event)) throw new Error(`evento não permitido: ${event}`);
     const fn = (_e, payload) => cb(payload);

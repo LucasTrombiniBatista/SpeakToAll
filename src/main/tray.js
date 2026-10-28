@@ -66,7 +66,7 @@ let handlers = {};
 let pluginCommands = [];
 
 function buildMenu() {
-  const { onOpen, onQuit, onToggleRecording, onPluginCommand } = handlers;
+  const { onOpen, onQuit, onToggleRecording, onPluginCommand, onCheckUpdates } = handlers;
   const items = [{ label: 'Abrir SpeakToAll', click: () => onOpen && onOpen() }];
   if (onToggleRecording) items.push({ label: 'Gravar / Parar', click: () => onToggleRecording() });
   if (pluginCommands.length && onPluginCommand) {
@@ -75,6 +75,7 @@ function buildMenu() {
       submenu: pluginCommands.map((c) => ({ label: `${c.pluginName}: ${c.name}`, click: () => onPluginCommand(c.pluginId, c.id) })),
     });
   }
+  if (onCheckUpdates) items.push({ type: 'separator' }, { label: 'Verificar atualizações', click: () => onCheckUpdates() });
   items.push({ type: 'separator' }, { label: 'Sair', click: () => onQuit && onQuit() });
   tray.setContextMenu(Menu.buildFromTemplate(items));
 }
