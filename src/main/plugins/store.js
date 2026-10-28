@@ -13,7 +13,7 @@ const ID_RE = /^[a-z0-9][a-z0-9-]{1,63}$/;
 const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const TIMEOUT_MS = 20000;
 const SHA_RE = /^[a-f0-9]{64}$/;
-const VERSION_RE = /^v?d+(.d+){0,3}$/;
+const VERSION_RE = /^v?\d+(\.\d+){0,3}$/;
 
 const str = (v, max = 500) => (typeof v === 'string' ? v.slice(0, max) : '');
 
