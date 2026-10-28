@@ -12,6 +12,7 @@ const DEFAULTS = {
   aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
   obsidianVault: '', obsidianFolder: 'SpeakToAll', obsidianCategories: '', obsidianAutoDetect: true,
   startWithWindows: false, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: false,
+  windowMode: 'windowed', // windowed | maximized | fullscreen
   hotkeyCode: 67,
   hotkeyModifiers: { ctrl: false, alt: false, shift: false, meta: false },
   threads: 0, // 0 = automático (núcleos físicos, ver engine.threadsFor)

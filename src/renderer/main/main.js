@@ -857,6 +857,7 @@ $('#ob-next').addEventListener('click', async () => {
   renderUpdate(await api.updateStatus());
   api.on('update:status', renderUpdate);
   api.on('update:notice', showUpdateNotice);
+  api.on('window:fullscreen', (on) => document.body.classList.toggle('fullscreen', on));
   api.on('notes:changed', loadNotes);
   api.on('dictation:state', ({ state }) => { if (state === 'needs-setup') openOnboarding(0); });
   await loadNotes();

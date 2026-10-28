@@ -1,4 +1,12 @@
-.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+/* Barra de título: faixa arrastável da mesma cor do app; os botões do Windows ficam à direita
+   (titleBarOverlay, 36px). Sem bordas: o topo some no fundo. */
+.titlebar {
+  height: 36px; -webkit-app-region: drag;
+  background: linear-gradient(to right, var(--sta-soft) 232px, var(--sta-bg) 232px);
+}
+.app { display: grid; grid-template-columns: 232px 1fr; height: calc(100vh - 36px); }
+.fullscreen .titlebar { display: none; }
+.fullscreen .app { height: 100vh; }
 
 /* Sidebar */
 .sidebar {
