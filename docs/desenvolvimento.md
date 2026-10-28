@@ -89,6 +89,14 @@ Para testar a interface no Electron enquanto outra instância do app está abert
 - Integrações: só Obsidian por enquanto; Notion e outros estão planejados (ver [integracoes.md](integracoes.md)).
 - Binários do whisper.cpp não são assinados — o SmartScreen pode pedir "Executar assim mesmo".
 
+## Capturas do README
+
+As imagens e GIFs de `docs/media/` saem dos renderers com o mock (`wp-mock.js`, só dados falsos). Depois de mudar a interface, regenere e versione:
+
+```bash
+npx electron scripts/capturar-midia.js   # docs/media/*.png e *.gif
+```
+
 ## Pílula com fundo preto
 
 Se aparecer um retângulo preto em volta da pílula sobre algum app, confira em `src/main/windows.js` que a janela overlay tem `transparent: true` + `backgroundColor: '#00000000'` e que `showOverlay()` espera o `did-finish-load`. Se persistir só sobre apps com aceleração de GPU, teste rodar com `--disable-direct-composition`.
