@@ -20,6 +20,8 @@ const obsidian = require('./integrations/obsidian');
 const updater = require('./updater');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
+// Mesmo ID do instalador: barra de tarefas agrupa e usa o ícone do atalho; notificações saem com o nome do app.
+app.setAppUserModelId('com.lucastrombini.speaktoall');
 
 const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality'];
 const HOTKEY_KEYS = ['hotkeyCode', 'hotkeyModifiers', 'hotkeyMode', 'tapToLock'];
