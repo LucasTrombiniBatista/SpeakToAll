@@ -41,7 +41,7 @@ Para ver só a interface no navegador (sem Electron, com dados falsos), abra `sr
 
 ```
 SpeakToAll/
-├── assets/                 # ícone do app e da bandeja (SVG)
+├── assets/                 # ícone do app e da bandeja (SVG + PNG gerados)
 ├── docs/                   # documentação
 ├── src/
 │   ├── main/               # processo principal (Node) — backend

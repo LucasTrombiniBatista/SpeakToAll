@@ -127,7 +127,9 @@ A tag dispara o workflow: testes, build e upload do instalador + `latest.yml` pa
 
 Dados do usuário (configurações, notas, motor e modelos) ficam em `%APPDATA%\speaktoall` e sobrevivem às atualizações.
 
-Limitações atuais: o instalador não é assinado (o SmartScreen mostra "editor desconhecido" na primeira instalação) e usa o ícone padrão do Electron (falta um `build/icon.ico` 256×256).
+O ícone do instalador, desinstalador e executável é `build/icon.ico`, gerado de `assets/icon.svg` (veja [design-system.md](design-system.md#logo)).
+
+Limitação atual: o instalador não é assinado (o SmartScreen mostra "editor desconhecido" na primeira instalação).
 
 ## Testes automatizados
 
