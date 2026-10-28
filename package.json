@@ -8,13 +8,49 @@
   },
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "dist": "electron-builder --win",
+    "release": "electron-builder --win --publish always"
   },
   "devDependencies": {
-    "electron": "^42.4.0"
+    "electron": "^42.4.0",
+    "electron-builder": "^26.18.0"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "opencc-js": "^1.4.2",
     "uiohook-napi": "^1.5.5"
+  },
+  "author": "Lucas Trombini B",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LucasTrombiniBatista/SpeakToAll.git"
+  },
+  "build": {
+    "appId": "com.lucastrombini.speaktoall",
+    "productName": "SpeakToAll",
+    "npmRebuild": false,
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/main/injector.ps1",
+      "**/node_modules/uiohook-napi/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "LucasTrombiniBatista",
+      "repo": "SpeakToAll"
+    }
   }
 }
