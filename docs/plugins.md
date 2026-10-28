@@ -27,7 +27,16 @@ Plugins estendem o SpeakToAll sem mexer no código do app. O modelo segue o do O
 
 - `id`: minúsculas, números e `-`, e precisa ser igual ao nome da pasta.
 - `minAppVersion`: plugins que pedem uma versão mais nova que a do app são recusados.
-- `permissions`: são só informativas por enquanto, exibidas antes de instalar. Valores sugeridos: `text`, `notes`, `network`.
+- `permissions`: obrigatórias e aplicadas pela API (menor privilégio). Uma permissão desconhecida recusa o manifest; usar algo não declarado lança `plugin X não declarou a permissão "..."`.
+
+| Permissão | Libera |
+|---|---|
+| `text` | `addTextProcessor` e o evento `dictation:text` |
+| `notes:read` | `app.notes.list/get` e o evento `note:created` |
+| `notes:write` | `app.notes.create/update` |
+| `network` | Só declarativa (aparece na Loja); ainda não é bloqueada, ver Segurança |
+
+`notes` (formato antigo) vale `notes:read` + `notes:write`. Sem permissão nenhuma, o plugin ainda pode usar `addCommand`, `notify`, `loadData/saveData`, `registerInterval`, os eventos `dictation:state`/`settings:changed` e `app.getSettings()` (só configurações não sensíveis).
 
 ## Código
 
@@ -80,6 +89,8 @@ O catálogo fica em `pluginCatalogUrl`, por padrão `https://raw.githubuserconte
       "author": "SpeakToAll",
       "description": "…",
       "repo": "autor/repositorio",
+      "version": "1.0.0",
+      "sha256": { "manifest.json": "<64 hex>", "main.js": "<64 hex>" },
       "category": "Texto",
       "permissions": ["text"]
     }
@@ -89,19 +100,22 @@ O catálogo fica em `pluginCatalogUrl`, por padrão `https://raw.githubuserconte
 ```
 
 - O catálogo só é baixado quando a aba Loja é aberta. Sem rede, a loja usa o cache.
-- **Instalar**: o app lê `GET /repos/<repo>/releases/latest` e baixa `manifest.json` e `main.js` para `plugins/<id>.tmp`. Depois valida (o `id` precisa conferir com o do catálogo, e o `minAppVersion` precisa ser compatível) e só então substitui a pasta. O plugin entra desativado.
-- **Atualizações**: compara a `version` do manifest instalado com a da última release. Releases incompatíveis aparecem bloqueadas.
+- **Entradas sem `version` e `sha256` de cada arquivo são ignoradas** (não aparecem na Loja).
+- **Instalar**: o app lê a release da versão fixada (`GET /repos/<repo>/releases/tags/<version>`, nunca a `latest`) e baixa `manifest.json` e `main.js`. Confere o sha256 de cada arquivo com o catálogo; se algum não bater, a instalação é recusada. Depois valida o manifest e só então substitui a pasta. O plugin entra desativado.
+- **Atualizações**: só existem quando o catálogo sobe a `version` (com novos hashes), ou seja, toda atualização passa pela revisão do catálogo.
 - **Kill switch**: os ids em `blocked` são descarregados e não carregam mais. Na inicialização, vale o `blocked` do último catálogo salvo, sem acessar a rede.
 
 ### Publicar um plugin
 
-1. Crie uma release no GitHub com `manifest.json` e `main.js` como assets.
-2. Abra um PR no repositório do catálogo adicionando a entrada.
+1. Crie uma release no GitHub com `manifest.json` e `main.js` como assets. A tag precisa ser igual à `version`.
+2. Calcule os hashes (`certutil -hashfile main.js SHA256` ou `sha256sum`) e abra um PR no repositório do catálogo com a entrada, `version` e `sha256`.
 3. Depois da revisão e do merge, o plugin aparece na Loja.
 
 ## Segurança
 
-Plugins **não rodam em sandbox**: têm o mesmo acesso do processo main (Node). As defesas são a revisão do catálogo, o aviso de permissões antes de instalar, o kill switch e o Modo restrito. Os textos vindos de manifests e do catálogo são renderizados com `textContent`.
+Modelo parecido com o do Obsidian, endurecido com menor privilégio: permissões aplicadas na API, downloads com versão fixada e sha256, kill switch e Modo restrito.
+
+**Limitação conhecida:** plugins ainda rodam no processo main, com Node. Um plugin malicioso pode contornar as permissões chamando `require('fs')` direto; por isso a revisão do catálogo continua sendo a defesa principal. O isolamento real (sandbox do Chromium, sem Node e sem rede) está nos próximos passos. Os textos vindos de manifests e do catálogo são renderizados com `textContent`.
 
 ## Exemplo
 
@@ -110,6 +124,6 @@ Plugins **não rodam em sandbox**: têm o mesmo acesso do processo main (Node). 
 ## Próximos passos
 
 - Repositório do catálogo com uma GitHub Action que valide os PRs (manifest válido, id único e igual ao do catálogo, release com os arquivos).
-- Checksums dos arquivos no catálogo.
+- Sandbox: rodar cada plugin num renderer isolado, com a API só por mensagens e `network` bloqueada de fato.
 - `styles.css` e pontos de extensão de interface.
 - Sandbox (processo utilitário/Worker) com permissões aplicadas de fato.
