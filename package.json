@@ -50,7 +50,8 @@
     "publish": {
       "provider": "github",
       "owner": "LucasTrombiniBatista",
-      "repo": "SpeakToAll"
+      "repo": "SpeakToAll",
+      "releaseType": "release"
     }
   }
 }
