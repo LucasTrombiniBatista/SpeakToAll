@@ -1,6 +1,6 @@
 {
   "name": "speaktoall",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fale. Vira texto. Em qualquer lugar.",
   "main": "src/main/main.js",
   "engines": {
@@ -40,12 +40,16 @@
       "**/node_modules/uiohook-napi/**"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
     },
     "publish": {
       "provider": "github",

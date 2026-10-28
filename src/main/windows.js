@@ -23,6 +23,7 @@ function createMain({ closeToTray }) {
   mainWin = new BrowserWindow({
     width: 1180, height: 760, minWidth: 900, minHeight: 600,
     backgroundColor: '#FFFFFF', title: 'SpeakToAll', show: false,
+    icon: path.join(ROOT, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'main-preload.js'),
       contextIsolation: true, nodeIntegration: false,
