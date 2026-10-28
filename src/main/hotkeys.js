@@ -67,7 +67,7 @@ class Hotkeys extends EventEmitter {
     if (modifiers) this.modifiers = { ctrl: !!modifiers.ctrl, alt: !!modifiers.alt, shift: !!modifiers.shift, meta: !!modifiers.meta };
     if (mode === 'hold' || mode === 'toggle') this.mode = mode;
     if (typeof tapToLock === 'boolean') this.tapToLock = tapToLock;
-    this.reset();
+    this._abort();
   }
 
   start() {
@@ -96,6 +96,11 @@ class Hotkeys extends EventEmitter {
     this.state = 'idle';
     this.pressedAt = 0;
     this.lockedAt = 0;
+  }
+
+  // Zera o estado avisando o ditado, para não deixar uma gravação órfã.
+  _abort() {
+    if (this.state !== 'idle') { this.reset(); this.emit('cancel'); }
   }
 
   getLabel() { return comboLabel(this.keycode, this.modifiers); }
@@ -166,7 +171,7 @@ class Hotkeys extends EventEmitter {
     const c = this._capture;
     this._capture = null;
     this.keyDown = false;
-    this.reset();
+    this._abort();
     c.resolve(result);
   }
 
