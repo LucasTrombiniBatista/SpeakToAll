@@ -1,0 +1,12 @@
+<svg width="164" height="314" viewBox="0 0 164 314" xmlns="http://www.w3.org/2000/svg">
+  <rect width="164" height="314" fill="#0E0F13"/>
+  <circle cx="132" cy="282" r="90" fill="#2346FF" opacity="0.12"/>
+  <g transform="translate(42 64) scale(0.8)">
+    <circle cx="50" cy="50" r="50" fill="#14161C"/>
+    <path d="M30 28h40a9 9 0 0 1 9 9v22a9 9 0 0 1-9 9H48l-13 11V68h-5a9 9 0 0 1-9-9V37a9 9 0 0 1 9-9z" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round"/>
+    <path d="M38 44v8M46 39v18M54 42v12M62 46v4" stroke="#3B7BFF" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <text x="82" y="176" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="17" font-weight="600" fill="#F4F5F7">SpeakToAll</text>
+  <text x="82" y="198" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" fill="#9A9EAA">Fale. Vira texto.</text>
+  <text x="82" y="213" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" fill="#9A9EAA">Em qualquer lugar.</text>
+</svg>
