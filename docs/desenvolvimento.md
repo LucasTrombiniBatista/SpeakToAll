@@ -113,3 +113,11 @@ npm test        # node --test, sem Electron
 ```
 
 Ficam em `test/`. O `uiohook-napi` é substituído por um stub em `test/hotkeys.test.js`. Bons próximos alvos: `engine.cleanTranscript`/`postProcess`, `config` (com pasta temporária), `notes.srtTime`, `dictation` com fakes.
+
+## Desempenho da transcrição
+
+- **Velocidade** (Configurações → Motor): *Rápido* (greedy, padrão) ou *Preciso* (beam search 5, de 3 a 5x mais lento na CPU).
+- **Threads**: o motor usa os núcleos físicos (`os.cpus().length / 2`, máximo 8). Valores maiores salvos em `settings.json` são limitados, porque o hyperthreading deixa o whisper mais lento.
+- **Modelo**: em notebooks de 4 núcleos, `small` ou `medium-q5_0` são bem mais leves que `large-v3-turbo-q5_0`, com alguma perda de precisão.
+- **Palavras cortadas**: os segmentos são juntados com o texto cru do whisper (`engine.joinSegments`) e o motor roda com `-sow`, para não aparecer "be m" no lugar de "bem".
+- Flash attention já vem ligado por padrão no whisper.cpp.

@@ -38,7 +38,7 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 | Processo main | `src/main/main.js` | Instância única, inicializa módulos, registra IPC |
 | Janela principal | `src/renderer/main/` | Notas, importação, reunião, configurações, onboarding |
 | Janela overlay | `src/renderer/overlay/` | Captura o microfone e mostra a pílula de gravação. Transparente (`backgroundColor: #00000000`, 360x110 para a sombra caber), sempre no topo, **sem foco**; só aparece depois do primeiro carregamento para não piscar um retângulo preto no Windows |
-| `whisper-server.exe` | processo filho | Mantém o modelo na memória → ditado quase instantâneo |
+| `whisper-server.exe` | processo filho | Mantém o modelo na memória → ditado quase instantâneo. Flags: `-t` = núcleos físicos (máx. 8), `-sow` (só quebra segmentos entre palavras), `-bs 1` no modo **Rápido** ou `-bs 5 -bo 5` no **Preciso** (`transcriptionQuality`) |
 | `whisper-cli.exe` | processo filho (sob demanda) | Arquivos longos, com progresso e segmentos em streaming |
 | `powershell.exe` | processo filho persistente | Executa `SendInput` (Ctrl+V ou digitação Unicode) |
 
