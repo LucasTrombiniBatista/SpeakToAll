@@ -2,14 +2,32 @@
 // adicione, não remova; e suba o minAppVersion dos plugins que dependerem do novo.
 const SAFE_SETTINGS = ['uiLanguage', 'language', 'injectMode', 'theme', 'hotkey', 'hotkeyMode'];
 
-function createApi({ appVersion, notes, config }) {
+// Permissões que um plugin pode declarar no manifest. Sem declarar, a API recusa.
+const PERMISSIONS = ['text', 'notes:read', 'notes:write', 'network'];
+// "notes" (formato antigo) vale leitura + escrita.
+const ALIASES = { notes: ['notes:read', 'notes:write'] };
+
+function expandPermissions(list = []) {
+  return [...new Set(list.flatMap((p) => ALIASES[p] || [p]))];
+}
+
+function permissionGuard(pluginId, permissions) {
+  const granted = new Set(expandPermissions(permissions));
+  return (perm) => {
+    if (!granted.has(perm)) throw new Error(`plugin ${pluginId} não declarou a permissão "${perm}"`);
+  };
+}
+
+function createApi({ appVersion, notes, config, pluginId = '?', permissions = [] }) {
+  const need = permissionGuard(pluginId, permissions);
   return Object.freeze({
     version: appVersion,
+    permissions: Object.freeze(expandPermissions(permissions)),
     notes: Object.freeze({
-      list: () => notes.list(),
-      get: (id) => notes.get(id),
-      create: (partial) => notes.create(partial),
-      update: (id, patch) => notes.update(id, patch),
+      list: () => { need('notes:read'); return notes.list(); },
+      get: (id) => { need('notes:read'); return notes.get(id); },
+      create: (partial) => { need('notes:write'); return notes.create(partial); },
+      update: (id, patch) => { need('notes:write'); return notes.update(id, patch); },
     }),
     getSettings() {
       const s = config.get();
@@ -18,4 +36,4 @@ function createApi({ appVersion, notes, config }) {
   });
 }
 
-module.exports = { createApi, SAFE_SETTINGS };
+module.exports = { createApi, SAFE_SETTINGS, PERMISSIONS, expandPermissions, permissionGuard };
