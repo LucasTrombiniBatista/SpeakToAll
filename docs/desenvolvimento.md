@@ -123,7 +123,7 @@ git push --follow-tags
 
 A tag dispara o workflow: testes, build e upload do instalador + `latest.yml` para o Release, que já sai publicado (`releaseType: "release"`; sem isso o electron-builder cria rascunho, e o app não enxerga rascunhos). Push comum na `main` **não** gera atualização. O repositório precisa ser público para o app ler os Releases.
 
-**No app instalado:** checa no boot e a cada 6 h (desligável em Configurações). Se houver versão nova, um diálogo pergunta se quer atualizar; aceito, baixa e oferece reiniciar (ou instala ao sair). Também dá para checar pela bandeja ou pelo botão em Configurações. Com `npm start` o updater fica desligado.
+**No app instalado:** checa no boot e a cada 6 h (desligável em Configurações). Se houver versão nova, baixa em segundo plano e mostra um aviso discreto no app (ou notificação do sistema, com a janela na bandeja); "Reiniciar agora" instala em modo silencioso (sem o assistente do NSIS) e reabre o app, e "Depois" instala ao sair. Também dá para checar pela bandeja ou pelo botão em Configurações. Com `npm start` o updater fica desligado.
 
 Dados do usuário (configurações, notas, motor e modelos) ficam em `%APPDATA%\speaktoall` e sobrevivem às atualizações.
 
