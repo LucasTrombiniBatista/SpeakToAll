@@ -16,7 +16,7 @@
     sounds: true, saveDictationNotes: true, saveAudio: false,
     aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
     obsidianVault: 'C:\\Users\\voce\\Obsidian\\Notas', obsidianFolder: 'SpeakToAll', obsidianCategories: 'Trabalho/Reuniões\nIdeias', obsidianAutoDetect: true,
-    startWithWindows: false, closeToTray: true, theme: 'system', onboarded: true,
+    startWithWindows: false, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: true,
     enabledPlugins: ['maiuscula-inicial'], restrictedMode: false,
   };
   const plugins = [
@@ -66,6 +66,9 @@
       segments: [], durationMs: 5200, language: 'pt', source: 'dictation', summary: null,
     },
   ];
+
+  let update = { state: 'idle', version: null, percent: 0, error: null };
+  const setUpdate = (patch) => { update = { ...update, ...patch }; emit('update:status', { ...update }); };
 
   window.wp = {
     isMock: true,
@@ -196,6 +199,10 @@
     async uninstallPlugin(id) { plugins.splice(plugins.findIndex((p) => p.id === id), 1); emit('plugins:changed'); return pluginList(); },
     async checkPluginUpdates() { await wait(500); return [{ id: 'maiuscula-inicial', name: 'Maiúscula inicial', current: '1.0.0', latest: '1.1.0', minAppVersion: '0.1.0', compatible: true }]; },
     async updatePlugin() { await wait(600); },
+    async updateStatus() { return { ...update }; },
+    async checkUpdates() { setUpdate({ state: 'checking' }); await wait(500); setUpdate({ state: 'available', version: '0.2.0' }); return { ...update }; },
+    async downloadUpdate() { for (let p = 0; p <= 100; p += 20) { setUpdate({ state: 'downloading', percent: p }); await wait(200); } setUpdate({ state: 'downloaded' }); return { ...update }; },
+    async installUpdate() { setUpdate({ state: 'latest', version: null }); },
     on(ev, cb) {
       (listeners[ev] ||= []).push(cb);
       return () => { listeners[ev] = listeners[ev].filter((f) => f !== cb); };

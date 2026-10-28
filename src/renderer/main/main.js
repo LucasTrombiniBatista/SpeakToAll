@@ -519,6 +519,32 @@ $('#set-hotkey').addEventListener('click', async (e) => {
 $$('[data-preview]').forEach((b) => b.addEventListener('click', () => api.previewOverlay(b.dataset.preview)));
 $('#set-reinstall').addEventListener('click', () => openOnboarding(1));
 $('#set-onboarding').addEventListener('click', () => openOnboarding(0));
+
+/* ---------- atualizações do app ---------- */
+let updateState = { state: 'idle' };
+function renderUpdate(st) {
+  updateState = st;
+  const v = st.version ? ` ${st.version}` : '';
+  const text = {
+    unsupported: 'Atualização automática só no app instalado',
+    idle: 'Ainda não verificado',
+    checking: 'Verificando…',
+    latest: 'Você está na versão mais recente',
+    available: `Versão${v} disponível`,
+    downloading: `Baixando${v}… ${st.percent || 0}%`,
+    downloaded: `Versão${v} pronta para instalar`,
+    error: `Erro: ${st.error || 'falha ao verificar'}`,
+  }[st.state];
+  const action = { available: 'Atualizar', downloaded: 'Reiniciar e instalar' }[st.state] || 'Verificar agora';
+  $('#update-status').textContent = text || '';
+  $('#update-action').textContent = action;
+  $('#update-action').disabled = ['unsupported', 'checking', 'downloading'].includes(st.state);
+}
+$('#update-action').addEventListener('click', () => {
+  if (updateState.state === 'available') return api.downloadUpdate();
+  if (updateState.state === 'downloaded') return api.installUpdate();
+  return api.checkUpdates();
+});
 $('#set-ai-preset').addEventListener('change', (e) => { if (e.target.value) saveSetting('aiBaseUrl', e.target.value); });
 $('#set-ai-models').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
@@ -818,6 +844,8 @@ $('#ob-next').addEventListener('click', async () => {
   api.on('plugins:changed', renderPlugins);
   api.on('plugins:notice', ({ name, message }) => toast(`${name}: ${message}`));
   renderPlugins();
+  renderUpdate(await api.updateStatus());
+  api.on('update:status', renderUpdate);
   api.on('notes:changed', loadNotes);
   api.on('dictation:state', ({ state }) => { if (state === 'needs-setup') openOnboarding(0); });
   await loadNotes();
