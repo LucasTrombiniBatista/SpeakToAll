@@ -3,6 +3,8 @@ const { BrowserWindow, screen, session, desktopCapturer } = require('electron');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+// .ico multi-tamanho: o Windows escolhe a entrada certa para barra de tarefas, Alt+Tab e título.
+const ICON = path.join(ROOT, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
 let mainWin = null;
 let overlayWin = null;
 let overlayReady = null;
@@ -23,7 +25,7 @@ function createMain({ closeToTray }) {
   mainWin = new BrowserWindow({
     width: 1180, height: 760, minWidth: 900, minHeight: 600,
     backgroundColor: '#FFFFFF', title: 'SpeakToAll', show: false,
-    icon: path.join(ROOT, '..', 'assets', 'icon.png'),
+    icon: ICON,
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'main-preload.js'),
       contextIsolation: true, nodeIntegration: false,
@@ -89,6 +91,6 @@ function send(channel, payload) {
 
 module.exports = {
   setupMedia, createMain, createOverlay, overlayCommand, hideOverlay, showMain, send,
-  getMain: () => mainWin,
+  getMain: () => mainWin, ICON,
   setQuitting: () => { quitting = true; },
 };

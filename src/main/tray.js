@@ -1,4 +1,5 @@
-// Ícone da bandeja: PNGs 32×32 gerados de assets/tray*.svg por scripts/gerar-icones.js.
+// Ícone da bandeja: PNGs 16px (+ @1.25x…@3x, escolhidos pelo Electron conforme a escala da tela)
+// gerados de assets/tray*.svg por scripts/gerar-icones.js.
 const { Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 
