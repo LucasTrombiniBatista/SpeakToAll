@@ -5,6 +5,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 let mainWin = null;
 let overlayWin = null;
+let overlayReady = null;
 let quitting = false;
 
 function setupMedia() {
@@ -38,8 +39,11 @@ function createMain({ closeToTray }) {
 
 function createOverlay() {
   overlayWin = new BrowserWindow({
-    width: 320, height: 72, frame: false, transparent: true, alwaysOnTop: true,
-    focusable: false, skipTaskbar: true, resizable: false, show: false, hasShadow: false,
+    // 360x110: margem para a sombra da pílula não ser cortada pelas bordas da janela.
+    // backgroundColor totalmente transparente evita o retângulo preto no Windows.
+    width: 360, height: 110, frame: false, transparent: true, backgroundColor: '#00000000',
+    alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
+    hasShadow: false, thickFrame: false,
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'overlay-preload.js'),
       contextIsolation: true, nodeIntegration: false, backgroundThrottling: false,
@@ -47,15 +51,19 @@ function createOverlay() {
   });
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
   overlayWin.setIgnoreMouseEvents(true);
+  // Só mostra depois do primeiro carregamento: antes disso o Windows pinta a área de preto.
+  overlayReady = new Promise((resolve) => overlayWin.webContents.once('did-finish-load', resolve));
   overlayWin.loadFile(path.join(ROOT, 'renderer', 'overlay', 'overlay.html'));
   return overlayWin;
 }
 
-function showOverlay() {
+async function showOverlay() {
+  await overlayReady;
+  if (!overlayWin || overlayWin.isDestroyed()) return;
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const { x, y, width, height } = display.workArea;
   const [w, h] = overlayWin.getSize();
-  overlayWin.setPosition(Math.round(x + (width - w) / 2), Math.round(y + height - h - 48));
+  overlayWin.setPosition(Math.round(x + (width - w) / 2), Math.round(y + height - h - 29));
   overlayWin.showInactive();
 }
 
