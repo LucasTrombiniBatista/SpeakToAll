@@ -105,3 +105,11 @@ Os relatórios ficam em `docs/qa/`.
 ### Pílula com fundo preto
 
 Se aparecer um retângulo preto em volta da pílula sobre algum app, confira em `src/main/windows.js` que a janela overlay tem `transparent: true` + `backgroundColor: '#00000000'` e que `showOverlay()` espera o `did-finish-load`. Se persistir só sobre apps com aceleração de GPU, teste rodar com `--disable-direct-composition`.
+
+## Testes automatizados
+
+```bash
+npm test        # node --test, sem Electron
+```
+
+Ficam em `test/`. O `uiohook-napi` é substituído por um stub em `test/hotkeys.test.js`. Bons próximos alvos: `engine.cleanTranscript`/`postProcess`, `config` (com pasta temporária), `notes.srtTime`, `dictation` com fakes.
