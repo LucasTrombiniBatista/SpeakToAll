@@ -154,7 +154,17 @@ function canConnect(p) {
   });
 }
 
-const threadsFor = (s) => s.threads || Math.max(1, Math.min(8, os.cpus().length - 1));
+// Padrão = núcleos físicos (assume hyperthreading): threads lógicas a mais deixam o whisper mais lento.
+const defaultThreads = () => Math.max(1, Math.min(8, Math.floor(os.cpus().length / 2)));
+// Limita ao padrão: configs antigas salvaram cpus - 2 (6 threads em 4 núcleos).
+const threadsFor = (s) => Math.min(s.threads || defaultThreads(), defaultThreads());
+// 'fast' = greedy; 'accurate' = beam search 5 (~3-5x mais lento na CPU).
+const decodeArgs = (s) => (s.transcriptionQuality === 'accurate' ? ['-bs', '5', '-bo', '5'] : ['-bs', '1', '-bo', '1']);
+
+// O whisper pode fechar um segmento no meio de uma palavra; a continuação vem sem espaço
+// inicial. Juntar com o texto cru (sem trim) evita "be m" no lugar de "bem".
+// Sem raw (segmento já aparado), assume fronteira de palavra.
+const joinSegments = (segs) => segs.map((s) => s.raw ?? ` ${s.text ?? ''}`).join('').replace(/\s+/g, ' ').trim();
 
 async function start(settings) {
   stop();
@@ -164,7 +174,7 @@ async function start(settings) {
   if (!exe || !fs.existsSync(m)) { emitStatus(); throw new Error('Engine ou modelo não instalado'); }
   port = await freePort();
   const args = ['-m', m, '--host', '127.0.0.1', '--port', String(port), '-t', String(threadsFor(settings)),
-    '-l', settings.language || 'auto', '-bs', '5', '-bo', '5'];
+    '-l', settings.language || 'auto', ...decodeArgs(settings), '-sow'];
   if (settings.initialPrompt) args.push('--prompt', settings.initialPrompt);
   const p = spawn(exe, args, { cwd: path.dirname(exe), windowsHide: true, stdio: 'ignore' });
   proc = p;
@@ -200,9 +210,9 @@ async function transcribe(wav, { language } = {}) {
   if (!res.ok) throw new Error(`whisper-server HTTP ${res.status}`);
   const j = await res.json();
   const segments = (j.segments || []).map((s) => ({
-    t0: Math.round((s.start ?? 0) * 1000), t1: Math.round((s.end ?? 0) * 1000), text: String(s.text || '').trim(),
+    t0: Math.round((s.start ?? 0) * 1000), t1: Math.round((s.end ?? 0) * 1000), raw: String(s.text || ''), text: String(s.text || '').trim(),
   }));
-  return { text: String(j.text ?? segments.map((s) => s.text).join(' ')).trim(), segments, language: j.language || language };
+  return { text: String(j.text ?? joinSegments(segments)).trim(), segments, language: j.language || language };
 }
 
 const toMs = (h, m, s, ms) => ((+h * 60 + +m) * 60 + +s) * 1000 + +ms;
@@ -216,7 +226,7 @@ function transcribeFile(wavPath, opts = {}, onSegment, onProgress) {
     if (!exe || !model || !fs.existsSync(modelPath(model))) return reject(new Error('Engine ou modelo não instalado'));
     const base = wavPath.replace(/\.[^.\\/]+$/, '') + '.stt';
     const args = ['-m', modelPath(model), '-f', wavPath, '-l', opts.language || 'auto', '-t', String(threadsFor(opts)),
-      '-oj', '-of', base, '-pp', '-np'];
+      '-oj', '-of', base, '-pp', '-np', ...decodeArgs(opts), '-sow'];
     if (opts.initialPrompt) args.push('--prompt', opts.initialPrompt);
     child = spawn(exe, args, { cwd: path.dirname(exe), windowsHide: true });
     const segments = [];
@@ -246,12 +256,12 @@ function transcribeFile(wavPath, opts = {}, onSegment, onProgress) {
       let result = null;
       try {
         const j = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
-        const segs = (j.transcription || []).map((s) => ({ t0: s.offsets?.from ?? 0, t1: s.offsets?.to ?? 0, text: String(s.text || '').trim() }));
-        result = { text: segs.map((s) => s.text).join(' ').trim(), segments: segs };
+        const segs = (j.transcription || []).map((s) => ({ t0: s.offsets?.from ?? 0, t1: s.offsets?.to ?? 0, raw: String(s.text || ''), text: String(s.text || '').trim() }));
+        result = { text: joinSegments(segs), segments: segs };
       } catch {}
       try { fs.unlinkSync(jsonFile); } catch {}
       if (!result && code !== 0) return reject(new Error(`whisper-cli saiu com código ${code}`));
-      resolve(result || { text: segments.map((s) => s.text).join(' ').trim(), segments });
+      resolve(result || { text: joinSegments(segments), segments });
     });
   });
   return { promise, cancel: () => { cancelled = true; try { child?.kill(); } catch {} } };
@@ -285,6 +295,6 @@ process.on('exit', () => { try { proc?.kill(); } catch {} });
 
 Object.assign(engine, {
   MODELS, init, detectHardware, install, cancel, start, stop, restart, status,
-  transcribe, transcribeFile, postProcess, cleanTranscript, freePort,
+  transcribe, transcribeFile, postProcess, cleanTranscript, freePort, joinSegments, threadsFor,
 });
 module.exports = engine;

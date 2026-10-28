@@ -88,3 +88,36 @@ Para testar a interface no Electron enquanto outra instância do app está abert
 - Traduções: os textos da interface estão em português direto no HTML; `locales/*.json` cobrem só a navegação.
 - Integrações: só Obsidian por enquanto; Notion e outros estão planejados (ver [integracoes.md](integracoes.md)).
 - Binários do whisper.cpp não são assinados — o SmartScreen pode pedir "Executar assim mesmo".
+
+## Agentes de QA (Claude Code)
+
+Em `.claude/agents/` há agentes prontos para o Claude Code:
+
+| Agente | Para quê |
+|---|---|
+| `bug-hunter` | Reproduz, acha a causa raiz e corrige bugs com commit atômico |
+| `security-auditor` | Audita IPC, preload, CSP, permissões, chaves de API, escrita em disco (só leitura) |
+| `combination-tester` | Testa combinações de atalho, modo, motor, provedores e integrações |
+| `ux-ui-cross-app` | Testa a pílula do overlay sobre outros apps (navegadores, vídeo, GPU, DPI) |
+
+Os relatórios ficam em `docs/qa/`.
+
+### Pílula com fundo preto
+
+Se aparecer um retângulo preto em volta da pílula sobre algum app, confira em `src/main/windows.js` que a janela overlay tem `transparent: true` + `backgroundColor: '#00000000'` e que `showOverlay()` espera o `did-finish-load`. Se persistir só sobre apps com aceleração de GPU, teste rodar com `--disable-direct-composition`.
+
+## Testes automatizados
+
+```bash
+npm test        # node --test, sem Electron
+```
+
+Ficam em `test/`. O `uiohook-napi` é substituído por um stub em `test/hotkeys.test.js`. Bons próximos alvos: `engine.cleanTranscript`/`postProcess`, `config` (com pasta temporária), `notes.srtTime`, `dictation` com fakes.
+
+## Desempenho da transcrição
+
+- **Velocidade** (Configurações → Motor): *Rápido* (greedy, padrão) ou *Preciso* (beam search 5, de 3 a 5x mais lento na CPU).
+- **Threads**: o motor usa os núcleos físicos (`os.cpus().length / 2`, máximo 8). Valores maiores salvos em `settings.json` são limitados, porque o hyperthreading deixa o whisper mais lento.
+- **Modelo**: em notebooks de 4 núcleos, `small` ou `medium-q5_0` são bem mais leves que `large-v3-turbo-q5_0`, com alguma perda de precisão.
+- **Palavras cortadas**: os segmentos são juntados com o texto cru do whisper (`engine.joinSegments`) e o motor roda com `-sow`, para não aparecer "be m" no lugar de "bem".
+- Flash attention já vem ligado por padrão no whisper.cpp.

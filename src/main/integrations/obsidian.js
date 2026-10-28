@@ -88,11 +88,12 @@ function buildMarkdown({ title, tags = [], body = '' }, note = {}) {
   if (tags.length) { fm.push('tags:'); for (const t of tags) fm.push(`  - ${yamlStr(t)}`); }
   fm.push(`created: ${new Date(note.createdAt || Date.now()).toISOString()}`);
   fm.push('source: speaktoall');
-  if (note.source) fm.push(`origin: ${note.source}`);
+  if (note.source) fm.push(`origin: ${yamlStr(note.source)}`);
   if (note.durationMs) fm.push(`duration: ${Math.round(note.durationMs / 1000)}`);
-  if (note.language) fm.push(`language: ${note.language}`);
+  if (note.language) fm.push(`language: ${yamlStr(note.language)}`);
   fm.push('---', '');
-  let md = fm.join('\n') + `# ${title}\n\n`;
+  // Quebras de linha no título (vindo da IA) partiriam o H1.
+  let md = fm.join('\n') + `# ${String(title).replace(/\s+/g, ' ').trim()}\n\n`;
   if (note.summary) md += `> [!summary] Resumo\n${note.summary.split('\n').map((l) => `> ${l}`).join('\n')}\n\n`;
   return md + `${String(body).trim()}\n`;
 }
