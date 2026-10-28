@@ -18,15 +18,18 @@ function headers(s, extra = {}) {
 // Extrai o primeiro objeto {...} balanceado de uma resposta (tolera ```json e texto extra).
 function extractJson(str) {
   const s = String(str || '');
-  const start = s.indexOf('{');
-  if (start < 0) return null;
-  let depth = 0, inStr = false, esc = false;
-  for (let i = start; i < s.length; i++) {
-    const c = s[i];
-    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
-    if (c === '"') inStr = true;
-    else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) { try { return JSON.parse(s.slice(start, i + 1)); } catch { return null; } }
+  // Se o bloco a partir de um "{" não for JSON válido, tenta o próximo "{".
+  for (let start = s.indexOf('{'); start >= 0; start = s.indexOf('{', start + 1)) {
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < s.length; i++) {
+      const c = s[i];
+      if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') inStr = true;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) {
+        try { return JSON.parse(s.slice(start, i + 1)); } catch { break; }
+      }
+    }
   }
   return null;
 }
