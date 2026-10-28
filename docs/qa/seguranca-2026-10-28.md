@@ -12,7 +12,7 @@ Feita pelo agente `security-auditor`, somente leitura, na branch `test/qa-segura
 | Média | `src/main/windows.js:16-19` | Captura de tela e áudio loopback concedida sem checar a origem | Checar a origem e conceder só durante reunião iniciada pelo usuário |
 | Baixa | `src/main` | Sem `will-navigate` / `setWindowOpenHandler` | Bloquear navegação; `window.open` → `shell.openExternal` |
 | Baixa | `src/main/windows.js:28,49` | `sandbox` implícito | Declarar `sandbox: true` |
-| Baixa | `src/main/integrations/obsidian.js:91,93` | `source`/`language` sem aspas no YAML | Usar `yamlStr()` |
+| Baixa | `src/main/integrations/obsidian.js:91,93` | `source`/`language` sem aspas no YAML | **Corrigido** (`yamlStr()`) |
 
 Pontos bons: `contextIsolation` ligado e `nodeIntegration` desligado nas duas janelas; CSP sem `unsafe-inline` em script; injector via base64 + SendInput; `safeFolder` e a flag `wx` no Obsidian; ids de nota validados; `open-external` só aceita http(s).
 
