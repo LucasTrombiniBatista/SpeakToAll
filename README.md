@@ -22,7 +22,11 @@ Stack: Electron + JavaScript puro como casca, reconhecimento de voz pelos binár
 - Node.js 20+ (o projeto usa 24, veja `.nvmrc`)
 - ~200 MB livres para motor + modelo `base` (até ~600 MB com `large-v3-turbo`)
 
-## Como rodar
+## Instalar
+
+Baixe o `SpeakToAll Setup <versão>.exe` em [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). O app avisa quando sai versão nova e se atualiza com a sua permissão.
+
+## Como rodar (desenvolvimento)
 
 ```bash
 npm install

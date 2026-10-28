@@ -40,6 +40,9 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `installPlugin(id)` / `updatePlugin(id)` | `store:install` / `store:update` | manifest instalado |
 | `uninstallPlugin(id)` | `store:uninstall` | lista atualizada |
 | `checkPluginUpdates()` | `store:updates` | `[{id, name, current, latest, minAppVersion, compatible}]` |
+| `updateStatus()` | `update:status` | `{state, version, percent, error}` |
+| `checkUpdates()` / `downloadUpdate()` | `update:check` / `update:download` | status atual |
+| `installUpdate()` | `update:install` | — (fecha e instala) |
 | `on(event, cb)` | — | função para remover o listener |
 
 ## Janela principal — eventos (`wp.on`)
@@ -57,6 +60,7 @@ Só os eventos desta lista são aceitos (allowlist no preload).
 | `dictation:state` | `{state: 'idle' \| 'recording' \| 'transcribing' \| 'needs-setup'}` |
 | `plugins:changed` | — |
 | `plugins:notice` | `{pluginId, name, message}` |
+| `update:status` | `{state: 'unsupported' \| 'idle' \| 'checking' \| 'latest' \| 'available' \| 'downloading' \| 'downloaded' \| 'error', version, percent, error}` |
 
 ## Overlay
 
