@@ -1,5 +1,5 @@
 // Bootstrap: instância única, módulos, IPC.
-const { app, ipcMain, dialog, shell } = require('electron');
+const { app, ipcMain, dialog, shell, safeStorage } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -39,8 +39,8 @@ async function startEngine() {
 }
 
 function registerIpc(d) {
-  ipcMain.handle('settings:get', () => config.get());
-  ipcMain.handle('settings:set', (_e, patch) => config.set(patch));
+  ipcMain.handle('settings:get', () => config.getPublic());
+  ipcMain.handle('settings:set', (_e, patch) => config.setFromRenderer(patch));
   ipcMain.handle('i18n:get', () => i18n.load(config.get().uiLanguage));
 
   ipcMain.handle('engine:status', () => engine.status());
@@ -172,7 +172,9 @@ app.on('window-all-closed', () => app.quit());
 
 app.whenReady().then(async () => {
   const d = dirs();
-  config.init(d.base);
+  // Chave de IA cifrada com DPAPI (safeStorage); sem ela, fica como antes.
+  const cipher = safeStorage.isEncryptionAvailable() ? { encrypt: (t) => safeStorage.encryptString(t), decrypt: (b) => safeStorage.decryptString(b) } : null;
+  config.init(d.base, cipher);
   notes.init(d.notes, d.audio);
   engine.init({ dataDir: d.base });
   jobs.init({
@@ -218,7 +220,7 @@ app.whenReady().then(async () => {
   notes.on('changed', (e) => { if (e?.type === 'create') plugins.dispatch('note:created', notes.get(e.id)); });
 
   config.on('changed', (s, keys) => {
-    windows.send('settings:changed', s);
+    windows.send('settings:changed', config.getPublic());
     plugins.dispatch('settings:changed', plugins.api.getSettings());
     if (keys.includes('restrictedMode')) plugins.reload();
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();

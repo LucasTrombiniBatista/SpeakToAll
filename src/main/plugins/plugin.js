@@ -1,8 +1,11 @@
 // Classe base dos plugins. Tudo que o plugin registra é rastreado e desfeito no _unload().
 const fs = require('fs');
 const path = require('path');
+const { permissionGuard } = require('./api');
 
 const EVENTS = ['dictation:state', 'dictation:text', 'note:created', 'settings:changed'];
+// Eventos que carregam conteúdo do usuário exigem permissão.
+const EVENT_PERMISSIONS = { 'dictation:text': 'text', 'note:created': 'notes:read' };
 
 class Plugin {
   constructor(app, manifest, host) {
@@ -12,6 +15,7 @@ class Plugin {
     this._cleanups = [];
     this._commands = new Map();
     this._processors = [];
+    this._need = permissionGuard(manifest.id, manifest.permissions);
   }
 
   onload() {}
@@ -27,12 +31,14 @@ class Plugin {
 
   // fn(text, {source, language}) → texto (sync ou async). Roda antes de inserir/salvar.
   addTextProcessor(fn) {
+    this._need('text');
     this._processors.push(fn);
     this._cleanups.push(() => { this._processors = this._processors.filter((f) => f !== fn); });
   }
 
   registerEvent(name, fn) {
     if (!EVENTS.includes(name)) throw new Error(`evento desconhecido: ${name}`);
+    if (EVENT_PERMISSIONS[name]) this._need(EVENT_PERMISSIONS[name]);
     const safe = (payload) => {
       try { const r = fn(payload); if (r && r.catch) r.catch((e) => this._host.fail(this, e)); } catch (e) { this._host.fail(this, e); }
     };
