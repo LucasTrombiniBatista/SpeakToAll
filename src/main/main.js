@@ -220,7 +220,8 @@ app.whenReady().then(async () => {
   updater.on('status', (st) => windows.send('update:status', st));
   registerIpc(d);
   windows.setupMedia();
-  windows.createMain({ closeToTray: () => config.get().closeToTray });
+  windows.setTheme(config.get().theme);
+  windows.createMain({ closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode });
   windows.createOverlay();
 
   tray.createTray({
@@ -251,6 +252,8 @@ app.whenReady().then(async () => {
     if (keys.includes('restrictedMode')) plugins.reload();
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
+    if (keys.includes('theme')) windows.setTheme(s.theme);
+    if (keys.includes('windowMode')) windows.setWindowMode(s.windowMode);
     if (keys.includes('autoCheckUpdates')) updater.schedule(s.autoCheckUpdates);
     if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
   });
