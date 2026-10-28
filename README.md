@@ -63,3 +63,7 @@ SpeakToAll/
 | [docs/design-system.md](docs/design-system.md) | Identidade visual (Paper), tokens, componentes |
 | [docs/integracoes.md](docs/integracoes.md) | Integração com o Obsidian e como adicionar novas |
 | [docs/desenvolvimento.md](docs/desenvolvimento.md) | Como testar, armadilhas conhecidas, pendências |
+
+## Atualizações
+
+No app instalado, novas versões são baixadas em segundo plano. Quando ficam prontas aparece um aviso discreto; ao reiniciar (ou ao sair do app) a instalação acontece em silêncio, sem abrir o instalador de novo. Dá para desligar a verificação automática em Configurações.
