@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { Plugin } = require('./plugin');
-const { createApi } = require('./api');
+const { createApi, PERMISSIONS } = require('./api');
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,63}$/;
 const REQUIRED = ['id', 'name', 'version', 'minAppVersion', 'author', 'description'];
@@ -30,6 +30,7 @@ function validateManifest(m, { expectedId, appVersion }) {
   if (expectedId && m.id !== expectedId) throw new Error(`id "${m.id}" não confere com "${expectedId}"`);
   if (cmpVersion(m.minAppVersion, appVersion) > 0) throw new Error(`requer SpeakToAll ${m.minAppVersion} ou mais novo`);
   if (m.permissions !== undefined && !Array.isArray(m.permissions)) throw new Error('"permissions" deve ser uma lista');
+  for (const p of m.permissions || []) if (!PERMISSIONS.includes(p) && p !== 'notes') throw new Error(`permissão desconhecida: ${p}`);
   return m;
 }
 
@@ -47,7 +48,8 @@ class Plugins extends EventEmitter {
     this.appVersion = appVersion;
     this.config = config;
     this.onNotify = onNotify;
-    this.api = createApi({ appVersion, notes, config });
+    this.notes = notes;
+    this.api = createApi({ appVersion, notes, config }); // sem permissões: só getSettings()
     fs.mkdirSync(this.dir, { recursive: true });
     this.scan();
     return this.loadEnabled();
@@ -95,7 +97,8 @@ class Plugins extends EventEmitter {
       const exported = require(file);
       const Cls = exported.prototype instanceof Plugin ? exported : exported({ Plugin });
       if (!(Cls && Cls.prototype instanceof Plugin)) throw new Error('main.js precisa exportar uma classe que estende Plugin');
-      instance = new Cls(this.api, e.manifest, this);
+      const api = createApi({ appVersion: this.appVersion, notes: this.notes, config: this.config, pluginId: id, permissions: e.manifest.permissions });
+      instance = new Cls(api, e.manifest, this);
       await instance.onload();
       e.instance = instance;
       e.error = null;

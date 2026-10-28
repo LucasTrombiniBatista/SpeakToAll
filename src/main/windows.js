@@ -1,5 +1,5 @@
 // Janela principal, janela overlay e permissões de mídia.
-const { BrowserWindow, screen, session, desktopCapturer } = require('electron');
+const { BrowserWindow, screen, session, desktopCapturer, webContents, shell } = require('electron');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -8,14 +8,33 @@ let overlayWin = null;
 let overlayReady = null;
 let quitting = false;
 
+// Menor privilégio: cada janela só recebe o que usa, e só para páginas locais do app.
+// Overlay: microfone (ditado). Principal: microfone + áudio do sistema (reunião).
+function allowedFor(wc) {
+  if (!wc || !wc.getURL().startsWith('file://')) return [];
+  if (overlayWin && wc === overlayWin.webContents) return ['media', 'audioCapture'];
+  if (mainWin && wc === mainWin.webContents) return ['media', 'audioCapture', 'display-capture'];
+  return [];
+}
+
 function setupMedia() {
-  const allowed = ['media', 'audioCapture', 'display-capture'];
-  session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(allowed.includes(perm)));
-  session.defaultSession.setPermissionCheckHandler((_wc, perm) => allowed.includes(perm));
+  session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(allowedFor(wc).includes(perm)));
+  session.defaultSession.setPermissionCheckHandler((wc, perm) => allowedFor(wc).includes(perm));
   // Reunião: áudio do sistema via WASAPI loopback (o vídeo é descartado no renderer).
-  session.defaultSession.setDisplayMediaRequestHandler(async (_req, cb) => {
+  session.defaultSession.setDisplayMediaRequestHandler(async (req, cb) => {
+    const wc = req.frame ? webContents.fromFrame(req.frame) : null;
+    if (!allowedFor(wc).includes('display-capture')) return cb({});
     const [source] = await desktopCapturer.getSources({ types: ['screen'] });
     cb({ video: source, audio: 'loopback' });
+  });
+}
+
+// Nenhuma janela navega para fora do app; links http(s) abrem no navegador.
+function lockNavigation(win) {
+  win.webContents.on('will-navigate', (e) => e.preventDefault());
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
   });
 }
 
@@ -25,10 +44,11 @@ function createMain({ closeToTray }) {
     backgroundColor: '#FFFFFF', title: 'SpeakToAll', show: false,
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'main-preload.js'),
-      contextIsolation: true, nodeIntegration: false,
+      contextIsolation: true, nodeIntegration: false, sandbox: true,
     },
   });
   mainWin.removeMenu();
+  lockNavigation(mainWin);
   mainWin.loadFile(path.join(ROOT, 'renderer', 'main', 'index.html'));
   mainWin.once('ready-to-show', () => mainWin.show());
   mainWin.on('close', (e) => {
@@ -46,11 +66,12 @@ function createOverlay() {
     hasShadow: false, thickFrame: false,
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'overlay-preload.js'),
-      contextIsolation: true, nodeIntegration: false, backgroundThrottling: false,
+      contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false,
     },
   });
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
   overlayWin.setIgnoreMouseEvents(true);
+  lockNavigation(overlayWin);
   // Só mostra depois do primeiro carregamento: antes disso o Windows pinta a área de preto.
   overlayReady = new Promise((resolve) => overlayWin.webContents.once('did-finish-load', resolve));
   overlayWin.loadFile(path.join(ROOT, 'renderer', 'overlay', 'overlay.html'));
