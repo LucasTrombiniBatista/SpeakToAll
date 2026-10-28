@@ -471,6 +471,10 @@ function bindSettings() {
       el.onchange = () => saveSetting(key, el.value);
     }
   });
+  // A chave nunca volta do main; só sabemos se existe. Campo vazio = manter a atual.
+  const keyInput = $('[data-setting="aiApiKey"]');
+  keyInput.placeholder = settings.aiApiKeySet ? '•••••••• (salva)' : 'sk-…';
+  keyInput.onchange = () => { if (keyInput.value) saveSetting('aiApiKey', keyInput.value); };
   const preset = $('#set-ai-preset');
   preset.value = [...preset.options].some((o) => o.value === settings.aiBaseUrl) ? settings.aiBaseUrl : '';
   $('#set-obsidian-vault').textContent = settings.obsidianVault || 'Nenhuma pasta escolhida';
