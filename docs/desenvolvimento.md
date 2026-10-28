@@ -89,20 +89,7 @@ Para testar a interface no Electron enquanto outra instância do app está abert
 - Integrações: só Obsidian por enquanto; Notion e outros estão planejados (ver [integracoes.md](integracoes.md)).
 - Binários do whisper.cpp não são assinados — o SmartScreen pode pedir "Executar assim mesmo".
 
-## Agentes de QA (Claude Code)
-
-Em `.claude/agents/` há agentes prontos para o Claude Code:
-
-| Agente | Para quê |
-|---|---|
-| `bug-hunter` | Reproduz, acha a causa raiz e corrige bugs com commit atômico |
-| `security-auditor` | Audita IPC, preload, CSP, permissões, chaves de API, escrita em disco (só leitura) |
-| `combination-tester` | Testa combinações de atalho, modo, motor, provedores e integrações |
-| `ux-ui-cross-app` | Testa a pílula do overlay sobre outros apps (navegadores, vídeo, GPU, DPI) |
-
-Os relatórios ficam em `docs/qa/`.
-
-### Pílula com fundo preto
+## Pílula com fundo preto
 
 Se aparecer um retângulo preto em volta da pílula sobre algum app, confira em `src/main/windows.js` que a janela overlay tem `transparent: true` + `backgroundColor: '#00000000'` e que `showOverlay()` espera o `did-finish-load`. Se persistir só sobre apps com aceleração de GPU, teste rodar com `--disable-direct-composition`.
 
