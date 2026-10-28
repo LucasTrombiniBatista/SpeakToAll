@@ -471,7 +471,17 @@ function bindSettings() {
       el.onchange = () => saveSetting(key, el.value);
     }
   });
-  const preset = $('#set-ai-preset');
+  const preset = // Avisos do updater: nada de diálogo nativo; um banner discreto no rodapé.
+function showUpdateNotice(n) {
+  if (n.kind === 'latest') return toast('Você está na versão mais recente');
+  if (n.kind === 'error') return toast('Não foi possível verificar atualizações');
+  if (n.kind !== 'downloaded') return;
+  $('#update-banner-text').textContent = `Versão${n.version ? ' ' + n.version : ''} pronta. Instala em segundos, sem assistente.`;
+  $('#update-banner').hidden = false;
+}
+$('#update-banner-restart').addEventListener('click', () => api.installUpdate());
+$('#update-banner-later').addEventListener('click', () => ($('#update-banner').hidden = true));
+$('#set-ai-preset');
   preset.value = [...preset.options].some((o) => o.value === settings.aiBaseUrl) ? settings.aiBaseUrl : '';
   $('#set-obsidian-vault').textContent = settings.obsidianVault || 'Nenhuma pasta escolhida';
   $('#set-obsidian-clear').hidden = !settings.obsidianVault;
@@ -846,6 +856,7 @@ $('#ob-next').addEventListener('click', async () => {
   renderPlugins();
   renderUpdate(await api.updateStatus());
   api.on('update:status', renderUpdate);
+  api.on('update:notice', showUpdateNotice);
   api.on('notes:changed', loadNotes);
   api.on('dictation:state', ({ state }) => { if (state === 'needs-setup') openOnboarding(0); });
   await loadNotes();
