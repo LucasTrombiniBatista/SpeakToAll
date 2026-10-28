@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="main.css">
 </head>
 <body>
+  <div class="titlebar" aria-hidden="true"></div>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="logo-mark" viewBox="0 0 100 100">
       <circle cx="50" cy="50" r="50" fill="#0B0B0D"/>
@@ -400,6 +401,14 @@
               </div>
             </div>
             <div class="field">
+              <div><strong>Janela</strong><p class="muted">F11 alterna tela cheia a qualquer momento.</p></div>
+              <div class="seg" data-setting="windowMode">
+                <button data-value="windowed">Janela</button>
+                <button data-value="maximized">Maximizada</button>
+                <button data-value="fullscreen">Tela cheia</button>
+              </div>
+            </div>
+            <div class="field">
               <div><strong>Idioma da interface</strong></div>
               <select class="select" data-setting="uiLanguage">
                 <option value="pt-BR">Português (Brasil)</option>
@@ -505,6 +514,12 @@
         <button class="btn btn-primary" type="submit" id="obs-save">Salvar no vault</button>
       </footer>
     </form>
+  </div>
+
+  <div class="update-banner" id="update-banner" role="status" hidden>
+    <span id="update-banner-text"></span>
+    <button class="btn btn-primary" id="update-banner-restart">Reiniciar agora</button>
+    <button class="btn btn-ghost" id="update-banner-later">Depois</button>
   </div>
 
   <div class="toast" id="toast" role="status" hidden></div>

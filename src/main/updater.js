@@ -1,5 +1,6 @@
 // Auto-update via GitHub Releases (electron-updater). Só funciona no app instalado (app.isPackaged).
-// Nada é baixado sem o usuário aceitar: autoDownload = false.
+// Discreto: baixa em segundo plano, avisa dentro do app e instala em modo silencioso
+// (sem o assistente do NSIS) ao reiniciar ou ao sair.
 const { EventEmitter } = require('events');
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -9,17 +10,17 @@ class Updater extends EventEmitter {
     super();
     this.state = { state: 'idle', version: null, percent: 0, error: null };
     this.au = null;
-    this.ask = null;
+    this.notify = null;
     this.timer = null;
     this.manual = false;
   }
 
-  // deps: { autoUpdater, enabled, ask(kind, info) → Promise<boolean> }; kind: available | downloaded | latest | error
-  init({ autoUpdater, enabled, ask }) {
-    this.ask = ask;
+  // deps: { autoUpdater, enabled, notify(kind, info) }; kind: downloaded | latest | error
+  init({ autoUpdater, enabled, notify }) {
+    this.notify = notify;
     if (!enabled) { this.set({ state: 'unsupported' }); return; }
     this.au = autoUpdater;
-    this.au.autoDownload = false;
+    this.au.autoDownload = false; // o download é disparado por onAvailable, para controlar o estado
     this.au.autoInstallOnAppQuit = true;
     this.au.on('checking-for-update', () => this.set({ state: 'checking', error: null }));
     this.au.on('update-not-available', () => { this.set({ state: 'latest' }); this.notifyManual('latest'); });
@@ -31,7 +32,7 @@ class Updater extends EventEmitter {
 
   // Checagem pedida pelo usuário (bandeja/configurações) sempre dá retorno, mesmo sem update.
   notifyManual(kind) {
-    if (this.manual) this.ask(kind, this.status());
+    if (this.manual) this.notify(kind, this.status());
     this.manual = false;
   }
 
@@ -54,16 +55,20 @@ class Updater extends EventEmitter {
 
   async check(manual = true) {
     if (!this.au) return this.status();
-    if (['checking', 'downloading', 'downloaded'].includes(this.state.state)) return this.status();
+    if (['checking', 'downloading', 'downloaded'].includes(this.state.state)) {
+      if (manual && this.state.state === 'downloaded') this.notify('downloaded', this.status());
+      return this.status();
+    }
     this.manual = manual;
     try { await this.au.checkForUpdates(); } catch {} // o erro chega pelo evento 'error'
     return this.status();
   }
 
-  async onAvailable(info) {
+  // Nova versão: baixa direto em segundo plano, sem perguntar.
+  onAvailable(info) {
     this.set({ state: 'available', version: info?.version || null });
     this.manual = false;
-    if (await this.ask('available', info)) this.download();
+    this.download();
   }
 
   async download() {
@@ -73,13 +78,14 @@ class Updater extends EventEmitter {
     return this.status();
   }
 
-  async onDownloaded(info) {
+  onDownloaded(info) {
     this.set({ state: 'downloaded', percent: 100, version: info?.version || this.state.version });
-    if (await this.ask('downloaded', info)) this.install();
+    this.notify('downloaded', this.status());
   }
 
+  // isSilent: NSIS sem janelas; isForceRunAfter: reabre o app depois de instalar.
   install() {
-    if (this.au && this.state.state === 'downloaded') this.au.quitAndInstall();
+    if (this.au && this.state.state === 'downloaded') this.au.quitAndInstall(true, true);
   }
 
   stop() { clearInterval(this.timer); this.timer = null; }

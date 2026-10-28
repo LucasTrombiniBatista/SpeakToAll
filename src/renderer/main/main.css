@@ -1,4 +1,12 @@
-.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+/* Barra de título: faixa arrastável da mesma cor do app; os botões do Windows ficam à direita
+   (titleBarOverlay, 36px). Sem bordas: o topo some no fundo. */
+.titlebar {
+  height: 36px; -webkit-app-region: drag;
+  background: linear-gradient(to right, var(--sta-soft) 232px, var(--sta-bg) 232px);
+}
+.app { display: grid; grid-template-columns: 232px 1fr; height: calc(100vh - 36px); }
+.fullscreen .titlebar { display: none; }
+.fullscreen .app { height: 100vh; }
 
 /* Sidebar */
 .sidebar {
@@ -157,6 +165,9 @@
 .modal-foot { display: flex; justify-content: space-between; }
 
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 10px 16px; border-radius: var(--r-pill); background: var(--sta-panel); color: #fff; font-size: 13px; box-shadow: var(--shadow-pop); z-index: 60; }
+.update-banner { position: fixed; bottom: 24px; right: 24px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: var(--r-md); background: var(--sta-panel); color: #fff; font-size: 13px; box-shadow: var(--shadow-pop); z-index: 61; }
+.update-banner[hidden] { display: none; }
+.update-banner .btn-ghost { color: #fff; }
 
 @media (max-width: 1100px) {
   .ai-panel { position: absolute; inset: 0 0 0 auto; box-shadow: var(--shadow-pop); }

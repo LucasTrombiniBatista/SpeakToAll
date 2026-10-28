@@ -545,6 +545,16 @@ $('#update-action').addEventListener('click', () => {
   if (updateState.state === 'downloaded') return api.installUpdate();
   return api.checkUpdates();
 });
+// Avisos do updater: nada de diálogo nativo; um banner discreto no rodapé.
+function showUpdateNotice(n) {
+  if (n.kind === 'latest') return toast('Você está na versão mais recente');
+  if (n.kind === 'error') return toast('Não foi possível verificar atualizações');
+  if (n.kind !== 'downloaded') return;
+  $('#update-banner-text').textContent = `Versão${n.version ? ' ' + n.version : ''} pronta. Instala em segundos, sem assistente.`;
+  $('#update-banner').hidden = false;
+}
+$('#update-banner-restart').addEventListener('click', () => api.installUpdate());
+$('#update-banner-later').addEventListener('click', () => ($('#update-banner').hidden = true));
 $('#set-ai-preset').addEventListener('change', (e) => { if (e.target.value) saveSetting('aiBaseUrl', e.target.value); });
 $('#set-ai-models').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
@@ -846,6 +856,8 @@ $('#ob-next').addEventListener('click', async () => {
   renderPlugins();
   renderUpdate(await api.updateStatus());
   api.on('update:status', renderUpdate);
+  api.on('update:notice', showUpdateNotice);
+  api.on('window:fullscreen', (on) => document.body.classList.toggle('fullscreen', on));
   api.on('notes:changed', loadNotes);
   api.on('dictation:state', ({ state }) => { if (state === 'needs-setup') openOnboarding(0); });
   await loadNotes();

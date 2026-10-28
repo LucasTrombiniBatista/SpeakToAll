@@ -1,8 +1,13 @@
 // Janela principal, janela overlay e permissões de mídia.
-const { BrowserWindow, screen, session, desktopCapturer } = require('electron');
+const { BrowserWindow, screen, session, desktopCapturer, nativeTheme } = require('electron');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+// .ico multi-tamanho: o Windows escolhe a entrada certa para barra de tarefas, Alt+Tab e título.
+const ICON = path.join(ROOT, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+// Barra de título própria: o app pinta o topo e o Windows só desenha os botões, nas cores do tema.
+const TITLEBAR_HEIGHT = 36;
+const THEME_COLORS = { light: { bg: '#FFFFFF', ink: '#0E0F13' }, dark: { bg: '#0E0F13', ink: '#F4F5F7' } };
 let mainWin = null;
 let overlayWin = null;
 let overlayReady = null;
@@ -19,11 +24,40 @@ function setupMedia() {
   });
 }
 
-function createMain({ closeToTray }) {
+function themeColors() {
+  return THEME_COLORS[nativeTheme.shouldUseDarkColors ? 'dark' : 'light'];
+}
+
+function titleBarOverlay() {
+  const c = themeColors();
+  return { color: c.bg, symbolColor: c.ink, height: TITLEBAR_HEIGHT };
+}
+
+// theme: system | light | dark (config.theme). Também define o prefers-color-scheme do renderer.
+function setTheme(theme) {
+  nativeTheme.themeSource = theme;
+}
+
+nativeTheme.on('updated', () => {
+  if (!mainWin || mainWin.isDestroyed()) return;
+  mainWin.setBackgroundColor(themeColors().bg);
+  mainWin.setTitleBarOverlay(titleBarOverlay());
+});
+
+// mode: windowed | maximized | fullscreen (config.windowMode).
+function setWindowMode(mode) {
+  if (!mainWin || mainWin.isDestroyed()) return;
+  mainWin.setFullScreen(mode === 'fullscreen');
+  if (mode === 'maximized') mainWin.maximize();
+  else if (mode === 'windowed' && mainWin.isMaximized()) mainWin.unmaximize();
+}
+
+function createMain({ closeToTray, windowMode }) {
   mainWin = new BrowserWindow({
     width: 1180, height: 760, minWidth: 900, minHeight: 600,
-    backgroundColor: '#FFFFFF', title: 'SpeakToAll', show: false,
-    icon: path.join(ROOT, '..', 'assets', 'icon.png'),
+    backgroundColor: themeColors().bg, title: 'SpeakToAll', show: false,
+    titleBarStyle: 'hidden', titleBarOverlay: titleBarOverlay(),
+    icon: ICON,
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'main-preload.js'),
       contextIsolation: true, nodeIntegration: false,
@@ -31,7 +65,14 @@ function createMain({ closeToTray }) {
   });
   mainWin.removeMenu();
   mainWin.loadFile(path.join(ROOT, 'renderer', 'main', 'index.html'));
-  mainWin.once('ready-to-show', () => mainWin.show());
+  mainWin.once('ready-to-show', () => { setWindowMode(windowMode()); mainWin.show(); });
+  // Em tela cheia o Windows esconde os botões; o renderer some com a faixa do topo.
+  mainWin.on('enter-full-screen', () => send('window:fullscreen', true));
+  mainWin.on('leave-full-screen', () => send('window:fullscreen', false));
+  // F11 alterna tela cheia sem mudar a preferência salva.
+  mainWin.webContents.on('before-input-event', (e, input) => {
+    if (input.type === 'keyDown' && input.key === 'F11') { e.preventDefault(); mainWin.setFullScreen(!mainWin.isFullScreen()); }
+  });
   mainWin.on('close', (e) => {
     if (!quitting && closeToTray()) { e.preventDefault(); mainWin.hide(); }
   });
@@ -88,7 +129,7 @@ function send(channel, payload) {
 }
 
 module.exports = {
-  setupMedia, createMain, createOverlay, overlayCommand, hideOverlay, showMain, send,
-  getMain: () => mainWin,
+  setupMedia, createMain, setTheme, setWindowMode, createOverlay, overlayCommand, hideOverlay, showMain, send,
+  getMain: () => mainWin, ICON,
   setQuitting: () => { quitting = true; },
 };
