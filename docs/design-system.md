@@ -31,15 +31,20 @@ Tema escuro: ativado por `prefers-color-scheme` ou `data-theme="dark"` em `<html
 
 ## Logo
 
-Quatro barras arredondadas (forma de onda); a última é mais alta e em cobalto (vermelho na versão "gravando"). Está como `<symbol id="logo-mark">` em `index.html`, em `assets/*.svg` e desenhado em bitmap em `tray.js`.
+Balão de fala com ondas sonoras dentro de um círculo preto: a voz (ondas azuis) virando mensagem (balão branco). Na bandeja as ondas ficam vermelhas enquanto grava. Fonte em `assets/icon.svg` (também como `<symbol id="logo-mark">` em `index.html`); a bandeja usa `assets/tray.svg` / `tray-rec.svg`, com traço mais grosso para ler em 16–32 px.
 
 ```svg
-<svg viewBox="0 0 56 56">
-  <rect x="2"  y="20" width="8" height="16" rx="4"/>
-  <rect x="15" y="12" width="8" height="32" rx="4"/>
-  <rect x="28" y="18" width="8" height="20" rx="4"/>
-  <rect x="43" y="4"  width="6" height="48" rx="3" fill="#2346FF"/>
+<svg viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="50" fill="#0B0B0D"/>
+  <path d="M30 28h40a9 9 0 0 1 9 9v22a9 9 0 0 1-9 9H48l-13 11V68h-5a9 9 0 0 1-9-9V37a9 9 0 0 1 9-9z" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M38 44v8M46 39v18M54 42v12M62 46v4" stroke="#3B7BFF" stroke-width="4.5" stroke-linecap="round"/>
 </svg>
+```
+
+Os PNG/ICO (instalador, executável, janela, bandeja) saem dos SVGs; depois de mudar um SVG, regenere e versione:
+
+```bash
+npx electron scripts/gerar-icones.js   # build/icon.ico, build/icon.png, assets/icon.png, assets/tray*.png
 ```
 
 ## Componentes (`tokens.css`)
