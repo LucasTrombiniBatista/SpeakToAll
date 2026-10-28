@@ -3,6 +3,7 @@
 const { EventEmitter } = require('events');
 const fs = require('fs');
 const path = require('path');
+const { joinSegments } = require('./engine');
 
 const SAVE_EVERY_MS = 4000;
 
@@ -62,7 +63,7 @@ class Jobs extends EventEmitter {
     return true;
   }
 
-  _joined(job) { return job.segments.map((s) => String(s.text || '').trim()).filter(Boolean).join(' '); }
+  _joined(job) { return joinSegments(job.segments); }
 
   _persist(job, final, text = this._joined(job)) {
     const patch = { segments: job.segments, text };

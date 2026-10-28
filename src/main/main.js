@@ -20,7 +20,7 @@ const obsidian = require('./integrations/obsidian');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
-const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor'];
+const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality'];
 const HOTKEY_KEYS = ['hotkeyCode', 'hotkeyModifiers', 'hotkeyMode', 'tapToLock'];
 let chatAbort = null;
 let installing = false;
