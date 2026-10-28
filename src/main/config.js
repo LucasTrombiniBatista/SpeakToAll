@@ -14,7 +14,8 @@ const DEFAULTS = {
   startWithWindows: false, closeToTray: true, theme: 'system', onboarded: false,
   hotkeyCode: 67,
   hotkeyModifiers: { ctrl: false, alt: false, shift: false, meta: false },
-  threads: Math.max(1, os.cpus().length - 2),
+  threads: 0, // 0 = automático (núcleos físicos, ver engine.threadsFor)
+  transcriptionQuality: 'fast',
   chineseVariant: 'traditional',
   enabledPlugins: [], restrictedMode: false,
   pluginCatalogUrl: 'https://raw.githubusercontent.com/speaktoall/plugins/main/plugins.json',
