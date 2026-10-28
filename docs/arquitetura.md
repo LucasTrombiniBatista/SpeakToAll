@@ -81,8 +81,11 @@ Notas enviadas ao Obsidian são gravadas na pasta escolhida pelo usuário (de pr
 
 ## Segurança
 
-- `contextIsolation: true`, `nodeIntegration: false`; renderers só veem `window.wp`, com allowlist de eventos.
-- Permissões de mídia liberadas só para `media`, `audioCapture`, `display-capture`.
+- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`; renderers só veem `window.wp`, com allowlist de eventos.
+- Menor privilégio nas permissões de mídia: só páginas `file://` do app; overlay recebe só o microfone, a janela principal recebe microfone e `display-capture` (reunião).
+- Nenhuma janela navega para fora do app (`will-navigate` bloqueado; `window.open` vira `openExternal` só para http(s)).
+- `settings:set` só aceita chaves permitidas e validadas (ver [ipc.md](ipc.md)).
 - CSP nas páginas; `open-external` aceita apenas `http(s)://`.
-- `aiApiKey` fica em `settings.json` em texto puro e não aparece em `getSettings()` dos plugins.
+- `aiApiKey` fica cifrada com `safeStorage` (DPAPI) em `settings.json` como `aiApiKeyEnc`; nunca vai ao renderer nem aos plugins. Chaves antigas em texto puro são migradas ao abrir o app.
+- Plugins: permissões do manifest aplicadas na API e downloads com versão fixada + sha256 (ver [plugins.md](plugins.md#segurança)).
 - A gravação no vault do Obsidian limpa os nomes, ignora `..` e confere se o destino está dentro da pasta escolhida.

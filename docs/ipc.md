@@ -7,8 +7,8 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `window.wp.` | Canal | Retorno |
 |---|---|---|
 | `i18n()` | `i18n:get` | dicionário do idioma da interface |
-| `getSettings()` | `settings:get` | objeto de configurações |
-| `setSettings(patch)` | `settings:set` | configurações atualizadas |
+| `getSettings()` | `settings:get` | configurações sem segredos: `aiApiKey` vem `""` e `aiApiKeySet` diz se existe |
+| `setSettings(patch)` | `settings:set` | configurações atualizadas (sem segredos). Só aceita as chaves de `RENDERER_KEYS` em `src/main/config.js`, cada uma validada; o resto é ignorado e logado. `pluginCatalogUrl`, `enabledPlugins` e `hotkeyCode` não são alteráveis pelo renderer, `aiBaseUrl` precisa ser `http(s)://` e `obsidianVault` só pode ser limpo (a pasta vem do diálogo nativo) |
 | `engineStatus()` | `engine:status` | `{installed, ready, model, flavor}` |
 | `detectHardware()` | `engine:hardware` | `{cpu, ramGb, gpu, recommendedFlavor, recommendedModel}` |
 | `installEngine({flavor, model})` | `engine:install` | status após instalar e subir o servidor |
@@ -48,7 +48,7 @@ Só os eventos desta lista são aceitos (allowlist no preload).
 
 | Evento | Payload |
 |---|---|
-| `settings:changed` | configurações completas |
+| `settings:changed` | configurações sem segredos |
 | `engine:progress` | `{stage: 'engine' \| 'model' \| 'starting', percent, totalMb}` |
 | `engine:status` | `{installed, ready, model, flavor}` |
 | `jobs:update` | `{id, name, status: 'queued' \| 'running' \| 'done' \| 'error', progress, segments, error?}` |
