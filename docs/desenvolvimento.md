@@ -89,20 +89,15 @@ Para testar a interface no Electron enquanto outra instância do app está abert
 - Integrações: só Obsidian por enquanto; Notion e outros estão planejados (ver [integracoes.md](integracoes.md)).
 - Binários do whisper.cpp não são assinados — o SmartScreen pode pedir "Executar assim mesmo".
 
-## Agentes de QA (Claude Code)
+## Capturas do README
 
-Em `.claude/agents/` há agentes prontos para o Claude Code:
+As imagens e GIFs de `docs/media/` saem dos renderers com o mock (`wp-mock.js`, só dados falsos). Depois de mudar a interface, regenere e versione:
 
-| Agente | Para quê |
-|---|---|
-| `bug-hunter` | Reproduz, acha a causa raiz e corrige bugs com commit atômico |
-| `security-auditor` | Audita IPC, preload, CSP, permissões, chaves de API, escrita em disco (só leitura) |
-| `combination-tester` | Testa combinações de atalho, modo, motor, provedores e integrações |
-| `ux-ui-cross-app` | Testa a pílula do overlay sobre outros apps (navegadores, vídeo, GPU, DPI) |
+```bash
+npx electron scripts/capturar-midia.js   # docs/media/*.png e *.gif
+```
 
-Os relatórios ficam em `docs/qa/`.
-
-### Pílula com fundo preto
+## Pílula com fundo preto
 
 Se aparecer um retângulo preto em volta da pílula sobre algum app, confira em `src/main/windows.js` que a janela overlay tem `transparent: true` + `backgroundColor: '#00000000'` e que `showOverlay()` espera o `did-finish-load`. Se persistir só sobre apps com aceleração de GPU, teste rodar com `--disable-direct-composition`.
 
@@ -123,7 +118,7 @@ git push --follow-tags
 
 A tag dispara o workflow: testes, build e upload do instalador + `latest.yml` para o Release, que já sai publicado (`releaseType: "release"`; sem isso o electron-builder cria rascunho, e o app não enxerga rascunhos). Push comum na `main` **não** gera atualização. O repositório precisa ser público para o app ler os Releases.
 
-**No app instalado:** checa no boot e a cada 6 h (desligável em Configurações). Se houver versão nova, um diálogo pergunta se quer atualizar; aceito, baixa e oferece reiniciar (ou instala ao sair). Também dá para checar pela bandeja ou pelo botão em Configurações. Com `npm start` o updater fica desligado.
+**No app instalado:** checa no boot e a cada 6 h (desligável em Configurações). Se houver versão nova, baixa em segundo plano e mostra um aviso discreto no app (ou notificação do sistema, com a janela na bandeja); "Reiniciar agora" instala em modo silencioso (sem o assistente do NSIS) e reabre o app, e "Depois" instala ao sair. Também dá para checar pela bandeja ou pelo botão em Configurações. Com `npm start` o updater fica desligado.
 
 Dados do usuário (configurações, notas, motor e modelos) ficam em `%APPDATA%\speaktoall` e sobrevivem às atualizações.
 

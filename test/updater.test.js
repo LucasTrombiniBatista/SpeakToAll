@@ -8,60 +8,57 @@ function fakeAutoUpdater() {
   au.calls = [];
   au.checkForUpdates = async () => { au.calls.push('check'); };
   au.downloadUpdate = async () => { au.calls.push('download'); };
-  au.quitAndInstall = () => { au.calls.push('install'); };
+  au.quitAndInstall = (...args) => { au.calls.push(['install', ...args]); };
   return au;
 }
 
-function setup(answer = true) {
+function setup() {
   const au = fakeAutoUpdater();
-  const asked = [];
+  const notified = [];
   const u = new Updater();
-  u.init({ autoUpdater: au, enabled: true, ask: async (kind) => { asked.push(kind); return answer; } });
-  return { u, au, asked };
+  u.init({ autoUpdater: au, enabled: true, notify: (kind) => notified.push(kind) });
+  return { u, au, notified };
 }
 
 const tick = () => new Promise((r) => setImmediate(r));
 
 test('fora do app instalado fica unsupported e não checa', async () => {
   const u = new Updater();
-  u.init({ autoUpdater: null, enabled: false, ask: async () => true });
+  u.init({ autoUpdater: null, enabled: false, notify: () => {} });
   assert.strictEqual(u.status().state, 'unsupported');
   await u.check();
   assert.strictEqual(u.status().state, 'unsupported');
 });
 
-test('não baixa sozinho: autoDownload desligado', () => {
-  const { au } = setup();
-  assert.strictEqual(au.autoDownload, false);
-});
-
-test('usuário aceita: baixa e depois instala', async () => {
-  const { u, au, asked } = setup(true);
+test('nova versão é baixada em segundo plano e avisa quando pronta', async () => {
+  const { u, au, notified } = setup();
   au.emit('update-available', { version: '0.2.0' });
   await tick();
   assert.deepStrictEqual(au.calls, ['download']);
+  assert.deepStrictEqual(notified, []);
   au.emit('update-downloaded', { version: '0.2.0' });
-  await tick();
-  assert.deepStrictEqual(asked, ['available', 'downloaded']);
-  assert.deepStrictEqual(au.calls, ['download', 'install']);
+  assert.deepStrictEqual(notified, ['downloaded']);
+  assert.strictEqual(u.status().state, 'downloaded');
   assert.strictEqual(u.status().version, '0.2.0');
 });
 
-test('usuário recusa: nada é baixado', async () => {
-  const { u, au } = setup(false);
-  au.emit('update-available', { version: '0.2.0' });
-  await tick();
+test('instalação é silenciosa e reabre o app', async () => {
+  const { u, au } = setup();
+  u.install(); // nada baixado ainda: ignora
   assert.deepStrictEqual(au.calls, []);
-  assert.strictEqual(u.status().state, 'available');
+  au.emit('update-available', { version: '0.2.0' });
+  au.emit('update-downloaded', { version: '0.2.0' });
+  u.install();
+  assert.deepStrictEqual(au.calls.at(-1), ['install', true, true]);
 });
 
 test('checagem manual sem update avisa o usuário; automática não', async () => {
-  const { u, au, asked } = setup();
+  const { u, au, notified } = setup();
   await u.check(false);
   au.emit('update-not-available');
-  assert.deepStrictEqual(asked, []);
+  assert.deepStrictEqual(notified, []);
   await u.check(true);
   au.emit('update-not-available');
-  assert.deepStrictEqual(asked, ['latest']);
+  assert.deepStrictEqual(notified, ['latest']);
   assert.strictEqual(u.status().state, 'latest');
 });

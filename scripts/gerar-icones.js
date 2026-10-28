@@ -5,7 +5,12 @@ const os = require('os');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
+// 20/40 cobrem a barra de tarefas em 125%/150%; 96 o Explorer em ícones médios.
+const ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 96, 128, 256];
+// Até 32px usa o desenho da bandeja (traço mais grosso): o logo cheio some em 16px.
+const SMALL_MAX = 32;
+// Bandeja: 16px DIP; o Electron escolhe tray@1.25x.png etc. conforme a escala da tela.
+const TRAY_SCALES = { '': 16, '@1.25x': 20, '@1.5x': 24, '@2x': 32, '@3x': 48 };
 
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 app.disableHardwareAcceleration();
@@ -13,13 +18,13 @@ app.disableHardwareAcceleration();
 app.on('window-all-closed', () => {});
 
 // Rasteriza um SVG no tamanho pedido usando o Chromium do Electron (offscreen, fundo transparente).
-async function render(svgFile, size) {
+async function render(svgFile, size, height = size) {
   const svg = fs.readFileSync(path.join(ROOT, 'assets', svgFile), 'utf8');
   const src = 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64');
   const html = `<html><body style="margin:0;background:transparent;overflow:hidden">
-    <img src="${src}" width="${size}" height="${size}" style="display:block"></body></html>`;
+    <img src="${src}" width="${size}" height="${height}" style="display:block"></body></html>`;
   const win = new BrowserWindow({
-    width: size, height: size, show: false, frame: false, transparent: true,
+    width: size, height, show: false, frame: false, transparent: true,
     backgroundColor: '#00000000', useContentSize: true,
     webPreferences: { offscreen: true },
   });
@@ -34,18 +39,37 @@ async function render(svgFile, size) {
   await new Promise((r) => setTimeout(r, 300));
   win.destroy();
   const img = frame;
-  return img.resize({ width: size, height: size, quality: 'best' }).toPNG();
+  return img.resize({ width: size, height, quality: 'best' });
 }
 
-// ICO com PNGs embutidos (aceito pelo Windows Vista+ e pelo electron-builder).
-function buildIco(pngs) {
+// Entrada DIB 32-bit (BGRA, linhas de baixo para cima + máscara AND zerada). O NSIS e partes
+// do shell do Windows desenham errado entradas PNG pequenas; só a de 256 fica em PNG.
+function dib(img) {
+  const { width: w, height: h } = img.getSize();
+  const bgra = img.toBitmap(); // BGRA no Windows
+  const maskRow = Math.ceil(w / 32) * 4;
+  const head = Buffer.alloc(40);
+  head.writeUInt32LE(40, 0);
+  head.writeInt32LE(w, 4);
+  head.writeInt32LE(h * 2, 8); // altura dobrada: XOR + AND
+  head.writeUInt16LE(1, 12);
+  head.writeUInt16LE(32, 14);
+  head.writeUInt32LE(w * h * 4 + maskRow * h, 20);
+  const px = Buffer.alloc(w * h * 4);
+  for (let y = 0; y < h; y++) bgra.copy(px, (h - 1 - y) * w * 4, y * w * 4, (y + 1) * w * 4);
+  return Buffer.concat([head, px, Buffer.alloc(maskRow * h)]);
+}
+
+function buildIco(images) {
   const header = Buffer.alloc(6);
   header.writeUInt16LE(0, 0);
   header.writeUInt16LE(1, 2);
-  header.writeUInt16LE(pngs.length, 4);
+  header.writeUInt16LE(images.length, 4);
   const entries = [];
-  let offset = 6 + 16 * pngs.length;
-  for (const { size, data } of pngs) {
+  const datas = [];
+  let offset = 6 + 16 * images.length;
+  for (const { size, img } of images) {
+    const data = size >= 256 ? img.toPNG() : dib(img);
     const e = Buffer.alloc(16);
     e.writeUInt8(size >= 256 ? 0 : size, 0);
     e.writeUInt8(size >= 256 ? 0 : size, 1);
@@ -54,19 +78,51 @@ function buildIco(pngs) {
     e.writeUInt32LE(data.length, 8);
     e.writeUInt32LE(offset, 12);
     entries.push(e);
+    datas.push(data);
     offset += data.length;
   }
-  return Buffer.concat([header, ...entries, ...pngs.map((p) => p.data)]);
+  return Buffer.concat([header, ...entries, ...datas]);
+}
+
+// BMP 24-bit para a imagem lateral do instalador NSIS (sem alfa).
+function bmp24(img) {
+  const { width: w, height: h } = img.getSize();
+  const bgra = img.toBitmap();
+  const row = Math.ceil((w * 3) / 4) * 4;
+  const out = Buffer.alloc(54 + row * h);
+  out.write('BM', 0);
+  out.writeUInt32LE(out.length, 2);
+  out.writeUInt32LE(54, 10);
+  out.writeUInt32LE(40, 14);
+  out.writeInt32LE(w, 18);
+  out.writeInt32LE(h, 22);
+  out.writeUInt16LE(1, 26);
+  out.writeUInt16LE(24, 28);
+  out.writeUInt32LE(row * h, 34);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const src = (y * w + x) * 4;
+      const dst = 54 + (h - 1 - y) * row + x * 3;
+      out[dst] = bgra[src]; out[dst + 1] = bgra[src + 1]; out[dst + 2] = bgra[src + 2];
+    }
+  }
+  return out;
 }
 
 app.whenReady().then(async () => {
-  const pngs = [];
-  for (const size of ICO_SIZES) pngs.push({ size, data: await render('icon.svg', size) });
-  fs.writeFileSync(path.join(ROOT, 'build', 'icon.ico'), buildIco(pngs));
-  fs.writeFileSync(path.join(ROOT, 'build', 'icon.png'), await render('icon.svg', 512));
-  fs.writeFileSync(path.join(ROOT, 'assets', 'icon.png'), await render('icon.svg', 256));
-  fs.writeFileSync(path.join(ROOT, 'assets', 'tray.png'), await render('tray.svg', 32));
-  fs.writeFileSync(path.join(ROOT, 'assets', 'tray-rec.png'), await render('tray-rec.svg', 32));
+  const images = [];
+  for (const size of ICO_SIZES) images.push({ size, img: await render(size <= SMALL_MAX ? 'tray.svg' : 'icon.svg', size) });
+  const ico = buildIco(images);
+  fs.writeFileSync(path.join(ROOT, 'build', 'icon.ico'), ico);
+  fs.writeFileSync(path.join(ROOT, 'assets', 'icon.ico'), ico); // janela/barra de tarefas (build/ não é empacotado)
+  fs.writeFileSync(path.join(ROOT, 'build', 'icon.png'), (await render('icon.svg', 512)).toPNG());
+  fs.writeFileSync(path.join(ROOT, 'assets', 'icon.png'), (await render('icon.svg', 256)).toPNG());
+  for (const name of ['tray', 'tray-rec']) {
+    for (const [suffix, size] of Object.entries(TRAY_SCALES)) {
+      fs.writeFileSync(path.join(ROOT, 'assets', `${name}${suffix}.png`), (await render(`${name}.svg`, size)).toPNG());
+    }
+  }
+  fs.writeFileSync(path.join(ROOT, 'build', 'installerSidebar.bmp'), bmp24(await render('installer-sidebar.svg', 164, 314)));
   console.log('Ícones gerados em build/ e assets/');
   app.quit();
-});
+}).catch((err) => { console.error(err); app.exit(1); });

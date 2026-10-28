@@ -1,5 +1,5 @@
 // Bootstrap: instância única, módulos, IPC.
-const { app, ipcMain, dialog, shell } = require('electron');
+const { app, ipcMain, dialog, shell, Notification } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -20,6 +20,8 @@ const obsidian = require('./integrations/obsidian');
 const updater = require('./updater');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
+// Mesmo ID do instalador: barra de tarefas agrupa e usa o ícone do atalho; notificações saem com o nome do app.
+app.setAppUserModelId('com.lucastrombini.speaktoall');
 
 const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality'];
 const HOTKEY_KEYS = ['hotkeyCode', 'hotkeyModifiers', 'hotkeyMode', 'tapToLock'];
@@ -39,17 +41,20 @@ async function startEngine() {
   try { await engine.start(config.get()); } catch (err) { console.warn('[engine]', err.message); }
 }
 
-// Diálogos nativos do updater: aparecem mesmo com a janela fechada na bandeja.
-async function askUpdate(kind, info) {
-  const v = info?.version ? ` ${info.version}` : '';
-  const opts = {
-    available: { type: 'info', message: `Nova versão do SpeakToAll${v} disponível`, detail: `Você usa a ${app.getVersion()}. Baixar e instalar agora?`, buttons: ['Atualizar', 'Depois'] },
-    downloaded: { type: 'info', message: `Versão${v} pronta para instalar`, detail: 'Reiniciar agora? Se preferir, ela é instalada quando você sair do app.', buttons: ['Reiniciar agora', 'Ao sair'] },
-    latest: { type: 'info', message: 'Você já está na versão mais recente', detail: `SpeakToAll ${app.getVersion()}`, buttons: ['OK'] },
-    error: { type: 'warning', message: 'Não foi possível verificar atualizações', detail: info?.error || '', buttons: ['OK'] },
+// Avisos do updater: banner dentro do app; com a janela escondida na bandeja, notificação do sistema.
+function notifyUpdate(kind, st) {
+  windows.send('update:notice', { kind, ...st });
+  const win = windows.getMain();
+  if ((win && win.isVisible()) || !Notification.isSupported()) return;
+  const v = st?.version ? ` ${st.version}` : '';
+  const body = {
+    downloaded: `Versão${v} pronta. Ela será instalada em silêncio quando você reiniciar ou sair do app.`,
+    latest: `Você já está na versão mais recente (${app.getVersion()}).`,
+    error: 'Não foi possível verificar atualizações.',
   }[kind];
-  const { response } = await dialog.showMessageBox(windows.getMain(), { ...opts, title: 'SpeakToAll', defaultId: 0, cancelId: opts.buttons.length - 1 });
-  return opts.buttons.length > 1 && response === 0;
+  const n = new Notification({ title: 'SpeakToAll', body, icon: windows.ICON, silent: true });
+  n.on('click', () => windows.showMain());
+  n.show();
 }
 
 function registerIpc(d) {
@@ -211,11 +216,12 @@ app.whenReady().then(async () => {
     onNotify: (n) => windows.send('plugins:notice', n),
   });
 
-  updater.init({ autoUpdater: app.isPackaged ? require('electron-updater').autoUpdater : null, enabled: app.isPackaged, ask: askUpdate });
+  updater.init({ autoUpdater: app.isPackaged ? require('electron-updater').autoUpdater : null, enabled: app.isPackaged, notify: notifyUpdate });
   updater.on('status', (st) => windows.send('update:status', st));
   registerIpc(d);
   windows.setupMedia();
-  windows.createMain({ closeToTray: () => config.get().closeToTray });
+  windows.setTheme(config.get().theme);
+  windows.createMain({ closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode });
   windows.createOverlay();
 
   tray.createTray({
@@ -246,6 +252,8 @@ app.whenReady().then(async () => {
     if (keys.includes('restrictedMode')) plugins.reload();
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
+    if (keys.includes('theme')) windows.setTheme(s.theme);
+    if (keys.includes('windowMode')) windows.setWindowMode(s.windowMode);
     if (keys.includes('autoCheckUpdates')) updater.schedule(s.autoCheckUpdates);
     if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
   });

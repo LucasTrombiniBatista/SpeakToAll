@@ -1,6 +1,6 @@
 {
   "name": "speaktoall",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Fale. Vira texto. Em qualquer lugar.",
   "main": "src/main/main.js",
   "engines": {
@@ -14,7 +14,8 @@
   },
   "devDependencies": {
     "electron": "^42.4.0",
-    "electron-builder": "^26.18.0"
+    "electron-builder": "^26.18.0",
+    "gifenc": "^1.0.3"
   },
   "dependencies": {
     "electron-updater": "^6.8.11",
@@ -49,7 +50,13 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "installerHeaderIcon": "build/icon.ico"
+      "installerHeaderIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "shortcutName": "SpeakToAll",
+      "createDesktopShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     },
     "publish": {
       "provider": "github",

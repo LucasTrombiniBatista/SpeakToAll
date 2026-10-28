@@ -2,3 +2,4 @@ node_modules/
 release/
 .claude/settings.local.json
 dist/
+.claude/
