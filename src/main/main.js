@@ -17,6 +17,7 @@ const dictation = require('./dictation');
 const plugins = require('./plugins');
 const store = require('./plugins/store');
 const obsidian = require('./integrations/obsidian');
+const updater = require('./updater');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
@@ -36,6 +37,19 @@ function configureHotkeys(s) {
 
 async function startEngine() {
   try { await engine.start(config.get()); } catch (err) { console.warn('[engine]', err.message); }
+}
+
+// Diálogos nativos do updater: aparecem mesmo com a janela fechada na bandeja.
+async function askUpdate(kind, info) {
+  const v = info?.version ? ` ${info.version}` : '';
+  const opts = {
+    available: { type: 'info', message: `Nova versão do SpeakToAll${v} disponível`, detail: `Você usa a ${app.getVersion()}. Baixar e instalar agora?`, buttons: ['Atualizar', 'Depois'] },
+    downloaded: { type: 'info', message: `Versão${v} pronta para instalar`, detail: 'Reiniciar agora? Se preferir, ela é instalada quando você sair do app.', buttons: ['Reiniciar agora', 'Ao sair'] },
+    latest: { type: 'info', message: 'Você já está na versão mais recente', detail: `SpeakToAll ${app.getVersion()}`, buttons: ['OK'] },
+    error: { type: 'warning', message: 'Não foi possível verificar atualizações', detail: info?.error || '', buttons: ['OK'] },
+  }[kind];
+  const { response } = await dialog.showMessageBox(windows.getMain(), { ...opts, title: 'SpeakToAll', defaultId: 0, cancelId: opts.buttons.length - 1 });
+  return opts.buttons.length > 1 && response === 0;
 }
 
 function registerIpc(d) {
@@ -156,6 +170,11 @@ function registerIpc(d) {
   ipcMain.handle('store:updates', () => store.checkUpdates());
   ipcMain.handle('store:update', (_e, id) => store.update(id));
 
+  ipcMain.handle('update:status', () => updater.status());
+  ipcMain.handle('update:check', () => updater.check());
+  ipcMain.handle('update:download', () => updater.download());
+  ipcMain.handle('update:install', () => updater.install());
+
   ipcMain.on('overlay:audio', (_e, wav) => dictation.onAudio(wav));
   ipcMain.on('overlay:hide', () => windows.hideOverlay());
 }
@@ -164,6 +183,7 @@ app.on('second-instance', () => windows.showMain());
 app.on('before-quit', () => {
   windows.setQuitting();
   hotkeys.stop();
+  updater.stop();
   plugins.unloadAll();
   injector.stop();
   engine.stop();
@@ -191,6 +211,8 @@ app.whenReady().then(async () => {
     onNotify: (n) => windows.send('plugins:notice', n),
   });
 
+  updater.init({ autoUpdater: app.isPackaged ? require('electron-updater').autoUpdater : null, enabled: app.isPackaged, ask: askUpdate });
+  updater.on('status', (st) => windows.send('update:status', st));
   registerIpc(d);
   windows.setupMedia();
   windows.createMain({ closeToTray: () => config.get().closeToTray });
@@ -199,6 +221,7 @@ app.whenReady().then(async () => {
   tray.createTray({
     onOpen: () => windows.showMain(),
     onQuit: () => app.quit(),
+    onCheckUpdates: app.isPackaged ? () => updater.check() : null,
     onToggleRecording: () => (dictation.state === 'idle' ? dictation.start() : dictation.stop()),
     onPluginCommand: (pluginId, id) => plugins.runCommand(pluginId, id).catch(() => {}),
   });
@@ -223,6 +246,7 @@ app.whenReady().then(async () => {
     if (keys.includes('restrictedMode')) plugins.reload();
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
+    if (keys.includes('autoCheckUpdates')) updater.schedule(s.autoCheckUpdates);
     if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
   });
 
@@ -231,4 +255,5 @@ app.whenReady().then(async () => {
   configureHotkeys(config.get());
   hotkeys.start();
   startEngine();
+  updater.schedule(config.get().autoCheckUpdates);
 });
