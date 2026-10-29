@@ -10,6 +10,17 @@
   <link rel="stylesheet" href="main.css">
 </head>
 <body>
+  <div class="splash" id="splash" hidden aria-hidden="true">
+    <svg class="splash-logo" viewBox="0 0 100 100" width="140" height="140">
+      <circle class="s-disc" cx="50" cy="50" r="50" fill="#0B0B0D"/>
+      <path class="s-bubble" pathLength="1" d="M30 28h40a9 9 0 0 1 9 9v22a9 9 0 0 1-9 9H48l-13 11V68h-5a9 9 0 0 1-9-9V37a9 9 0 0 1 9-9z" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round"/>
+      <g stroke="var(--logo-accent, #3B7BFF)" stroke-width="4.5" stroke-linecap="round">
+        <path class="s-bar" d="M38 44v8"/><path class="s-bar" d="M46 39v18"/><path class="s-bar" d="M54 42v12"/><path class="s-bar" d="M62 46v4"/>
+      </g>
+    </svg>
+    <span class="splash-word"><span style="--i:0">S</span><span style="--i:1">p</span><span style="--i:2">e</span><span style="--i:3">a</span><span style="--i:4">k</span><span style="--i:5">T</span><span style="--i:6">o</span><span style="--i:7">A</span><span style="--i:8">l</span><span style="--i:9">l</span></span>
+    <span class="splash-bar"></span>
+  </div>
   <div class="titlebar" aria-hidden="true"></div>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="logo-mark" viewBox="0 0 100 100">
@@ -526,6 +537,7 @@
 
   <script src="../common/wp-mock.js"></script>
   <script src="../common/audio.js"></script>
+  <script src="jingle.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
