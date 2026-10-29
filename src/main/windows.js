@@ -61,6 +61,8 @@ function createMain({ closeToTray, windowMode }) {
     webPreferences: {
       preload: path.join(ROOT, 'preload', 'main-preload.js'),
       contextIsolation: true, nodeIntegration: false,
+      // O jingle do lobby de abertura toca sem clique.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   mainWin.removeMenu();
@@ -69,6 +71,8 @@ function createMain({ closeToTray, windowMode }) {
   // Em tela cheia o Windows esconde os botões; o renderer some com a faixa do topo.
   mainWin.on('enter-full-screen', () => send('window:fullscreen', true));
   mainWin.on('leave-full-screen', () => send('window:fullscreen', false));
+  // Ao reabrir do segundo plano o renderer volta para a aba principal.
+  mainWin.on('show', () => send('window:shown'));
   // F11 alterna tela cheia sem mudar a preferência salva.
   mainWin.webContents.on('before-input-event', (e, input) => {
     if (input.type === 'keyDown' && input.key === 'F11') { e.preventDefault(); mainWin.setFullScreen(!mainWin.isFullScreen()); }

@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state', 'plugins:changed', 'plugins:notice', 'update:status', 'update:notice', 'window:fullscreen'];
+const EVENTS = ['settings:changed', 'engine:progress', 'engine:status', 'jobs:update', 'notes:changed', 'ai:chunk', 'dictation:state', 'plugins:changed', 'plugins:notice', 'update:status', 'update:notice', 'window:fullscreen', 'window:shown'];
 
 contextBridge.exposeInMainWorld('wp', {
   isMock: false,
