@@ -47,11 +47,11 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 1. **Tecla** — `hotkeys.js` observa o teclado (hook passivo, não bloqueia a tecla) e emite `start`.
 2. **Checagem** — `dictation.js` confere `engine.status()`. Sem motor: mostra erro no overlay e abre o onboarding.
 3. **Gravação** — manda `{type:'start'}` ao overlay, que aparece com `showInactive()` (não rouba o foco do app de destino) e grava em 16 kHz.
-4. **Soltar** — `stop` → overlay codifica WAV PCM 16-bit mono e envia por `overlay:audio`.
-5. **Transcrição** — áudios < 350 ms são descartados; o resto vai para `engine.transcribe` (POST `/inference`).
+4. **Soltar** — `stop` → overlay corta o silêncio do começo e do fim (folga de ~250 ms), codifica WAV PCM 16-bit mono e envia por `overlay:audio`. O overlay usa um único `AudioContext` (gravação + bipes), suspenso entre ditados.
+5. **Transcrição** — áudios < 350 ms (ou só silêncio) são descartados; o resto vai para `engine.transcribe` (POST `/inference`, `temperature` 0 sem fallback, para decodificar uma vez só).
 6. **Limpeza** — `cleanTranscript` remove `[BLANK_AUDIO]`, `(música)`, `♪` e junta tudo numa linha (evita Enter acidental em chats). Em seguida o texto passa pelos processadores dos plugins ativos (`plugins.processText`).
 7. **Injeção** — `injector.inject(text, mode)`:
-   - `paste`: salva clipboard → escreve texto → 80 ms → Ctrl+V → restaura após 350 ms.
+   - `paste`: salva clipboard → escreve texto → 30 ms → Ctrl+V. O ditado termina aqui; a restauração do clipboard (após 350 ms) segue na fila sem atrasar o ✓.
    - `type`: digita caractere a caractere com `KEYEVENTF_UNICODE`.
 8. **Nota** — se `saveDictationNotes`, cria a nota (e guarda o WAV se `saveAudio`).
 9. **Fim** — overlay mostra ✓ e some em 1 s; `hotkeys.reset()`.
