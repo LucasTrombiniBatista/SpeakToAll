@@ -31,6 +31,24 @@ function init({ dataDir }) {
   paths = { bin: path.join(dataDir, 'bin', 'whisper'), models: path.join(dataDir, 'models') };
   fs.mkdirSync(paths.bin, { recursive: true });
   fs.mkdirSync(paths.models, { recursive: true });
+  // Sobras de instalações cujo bin estava travado (ver clearBin)
+  for (const e of fs.readdirSync(path.dirname(paths.bin))) {
+    if (e.startsWith('whisper-old-')) try { fs.rmSync(path.join(path.dirname(paths.bin), e), { recursive: true, force: true }); } catch {}
+  }
+}
+
+// O Windows segura o .exe/DLLs por alguns instantes após o kill; tenta de novo e, em último caso,
+// move a pasta para o lado e limpa no próximo init().
+function clearBin() {
+  try {
+    fs.rmSync(paths.bin, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  } catch (e) {
+    if (e.code !== 'EPERM' && e.code !== 'EBUSY') throw e;
+    try { fs.renameSync(paths.bin, `${paths.bin}-old-${Date.now()}`); } catch {
+      throw new Error('Arquivos do motor em uso. Feche outras instâncias do SpeakToAll (ou o antivírus pode estar verificando) e tente de novo.');
+    }
+  }
+  fs.mkdirSync(paths.bin, { recursive: true });
 }
 
 const modelPath = (id) => path.join(paths.models, `ggml-${id}.bin`);
@@ -111,13 +129,12 @@ function expand(zip, dir) {
 }
 
 async function install({ flavor = 'cpu', model }, onProgress) {
-  stop(); // o Windows trava o .exe em uso
+  await stopAndWait(); // o Windows trava o .exe em uso
   abort = new AbortController();
   const { signal } = abort;
   try {
     if (installedFlavor() !== flavor || !findExe('whisper-server.exe') || !findExe('whisper-cli.exe')) {
-      fs.rmSync(paths.bin, { recursive: true, force: true });
-      fs.mkdirSync(paths.bin, { recursive: true });
+      clearBin();
       const z = ZIPS[flavor] || ZIPS.cpu;
       const zip = path.join(paths.bin, z.file);
       await download(`https://github.com/ggml-org/whisper.cpp/releases/download/${VERSION}/${z.file}`, zip, 'engine', onProgress, signal);
@@ -193,6 +210,16 @@ async function start(settings) {
 function stop() {
   if (proc) { const p = proc; proc = null; try { p.kill(); } catch {} }
   if (ready) { ready = false; emitStatus(); }
+}
+
+// Como stop(), mas só resolve quando o processo realmente saiu (libera os arquivos no Windows)
+function stopAndWait(timeoutMs = 5000) {
+  const p = proc;
+  const exited = p && p.exitCode === null && p.signalCode === null
+    ? new Promise((r) => { p.once('exit', r); setTimeout(r, timeoutMs); })
+    : Promise.resolve();
+  stop();
+  return exited;
 }
 
 async function restart(settings) { stop(); return start(settings); }
