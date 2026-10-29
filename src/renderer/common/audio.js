@@ -44,19 +44,45 @@
     return { wav: encodeWav(rendered.getChannelData(0)), durationMs: decoded.duration * 1000 };
   }
 
+  // Remove os pedaços silenciosos das pontas, com folga de ~250 ms. Só silêncio → vazio.
+  const SILENCE_RMS = 0.006;
+  const TRIM_PAD = 2;
+  function trimSilence(chunks) {
+    const first = chunks.findIndex((c) => rms(c) > SILENCE_RMS);
+    if (first < 0) return [];
+    let last = chunks.length - 1;
+    while (rms(chunks[last]) <= SILENCE_RMS) last--;
+    return chunks.slice(Math.max(0, first - TRIM_PAD), last + TRIM_PAD + 1);
+  }
+
+  const withWorklet = new WeakSet();
+
   // Grava de uma ou mais fontes num único worklet (Web Audio soma as entradas).
-  async function createRecorder(streams, onLevel) {
-    const ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
-    await ctx.audioWorklet.addModule('../common/pcm-worklet.js');
+  // Com `shared`, reaproveita um AudioContext que já existe e não o fecha no fim.
+  async function createRecorder(streams, onLevel, shared = null) {
+    const ctx = shared || new AudioContext({ sampleRate: SAMPLE_RATE });
+    if (!withWorklet.has(ctx)) {
+      await ctx.audioWorklet.addModule('../common/pcm-worklet.js');
+      withWorklet.add(ctx);
+    }
     const node = new AudioWorkletNode(ctx, 'pcm-capture');
     const chunks = [];
-    node.port.onmessage = (e) => { chunks.push(e.data); onLevel && onLevel(rms(e.data)); };
-    for (const s of streams) ctx.createMediaStreamSource(s).connect(node);
+    let flushed = null;
+    node.port.onmessage = (e) => {
+      if (e.data.flushed) return flushed?.();
+      chunks.push(e.data);
+      onLevel && onLevel(rms(e.data));
+    };
+    const sources = streams.map((s) => ctx.createMediaStreamSource(s));
+    sources.forEach((src) => src.connect(node));
     return {
-      async stop() {
+      async stop({ trim = false } = {}) {
+        await new Promise((r) => { flushed = r; node.port.postMessage('flush'); setTimeout(r, 300); });
         streams.forEach((s) => s.getTracks().forEach((t) => t.stop()));
-        await ctx.close();
-        const samples = concat(chunks);
+        sources.forEach((src) => src.disconnect());
+        node.port.onmessage = null;
+        if (shared) node.disconnect(); else await ctx.close();
+        const samples = concat(trim ? trimSilence(chunks) : chunks);
         return { wav: encodeWav(samples), durationMs: (samples.length / SAMPLE_RATE) * 1000 };
       },
     };

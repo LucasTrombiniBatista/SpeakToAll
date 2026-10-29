@@ -24,7 +24,7 @@ Cria a janela principal (fecha para a bandeja se `closeToTray`) e o overlay (`fr
 | `detectHardware()` | CPU/threads, RAM, GPU via `nvidia-smi` → flavor e modelo recomendados |
 | `install({flavor, model}, onProgress)` | Baixa o zip do whisper.cpp v1.8.6 (blas ou cublas-12.4.0) e o modelo (`.part` → rename), extrai com `Expand-Archive`. Progresso a cada 150 ms. Troca de flavor apaga `bin/whisper` |
 | `cancel()` | Aborta o download |
-| `start(settings)` / `stop()` / `restart()` | Sobe `whisper-server.exe` numa porta livre com `-bs 5 -bo 5`, espera aceitar conexões (até 120 s) |
+| `start(settings)` / `stop()` | Sobe `whisper-server.exe` numa porta livre (greedy no modo rápido, `-bs 5 -bo 5` no preciso), espera aceitar conexões (até 120 s) |
 | `status()` | `{installed, ready, model, flavor}`; emite `'status'` quando muda |
 | `transcribe(wav, {language})` | POST `/inference` (`verbose_json`) → `{text, segments, language}` |
 | `transcribeFile(path, opts, onSegment, onProgress)` | `whisper-cli.exe -oj -pp -np`, lê `[hh:mm:ss --> ...]` e `progress = N%` do stdout → `{promise, cancel}` |
@@ -78,8 +78,8 @@ Sistema de plugins (ver [plugins.md](plugins.md)).
 | Arquivo | Papel |
 |---|---|
 | `common/tokens.css` | Design system (ver [design-system.md](design-system.md)) |
-| `common/audio.js` | `encodeWav`, `fileToWav` (reamostra 16 kHz), `createRecorder(streams, onLevel)`, `fmtClock` → `window.staAudio` |
-| `common/pcm-worklet.js` | AudioWorklet que repassa blocos `Float32Array` |
+| `common/audio.js` | `encodeWav`, `fileToWav` (reamostra 16 kHz), `createRecorder(streams, onLevel, ctx?)` (`stop({trim})` corta silêncio das pontas), `fmtClock` → `window.staAudio` |
+| `common/pcm-worklet.js` | AudioWorklet que junta blocos `Float32Array` de ~128 ms; mensagem `flush` esvazia o resto |
 | `common/wp-mock.js` | Implementação falsa de `window.wp` para abrir as páginas no navegador |
 | `main/index.html · main.css · main.js` | Janela principal: notas, importar, reunião, configurações, onboarding, painel de IA, revisão do envio ao Obsidian |
 | `main/jingle.js` | Jingle do lobby de abertura sintetizado com Web Audio → `window.staJingle.play()` (devolve `{ stop() }`) |
