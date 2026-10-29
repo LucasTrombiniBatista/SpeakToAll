@@ -82,6 +82,7 @@ Sistema de plugins (ver [plugins.md](plugins.md)).
 | `common/pcm-worklet.js` | AudioWorklet que repassa blocos `Float32Array` |
 | `common/wp-mock.js` | Implementação falsa de `window.wp` para abrir as páginas no navegador |
 | `main/index.html · main.css · main.js` | Janela principal: notas, importar, reunião, configurações, onboarding, painel de IA, revisão do envio ao Obsidian |
+| `main/jingle.js` | Jingle do lobby de abertura sintetizado com Web Audio → `window.staJingle.play()` (devolve `{ stop() }`) |
 | `overlay/overlay.html · overlay.js` | Pílula: estados gravando / transcrevendo / pronto / erro, barras RMS, bipes |
 
 ## Preloads — `src/preload/`

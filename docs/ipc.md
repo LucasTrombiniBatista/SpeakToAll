@@ -43,6 +43,7 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `updateStatus()` | `update:status` | `{state, version, percent, error}` |
 | `update:notice` | `{kind: 'downloaded' | 'latest' | 'error', ...status}` — banner/toast no app (sem diálogo nativo) |
 | `window:fullscreen` | `boolean` — esconde a faixa da barra de título em tela cheia |
+| `window:shown` | — janela principal reaberta (tray/atalho); o app volta para a aba Notas |
 | `checkUpdates()` / `downloadUpdate()` | `update:check` / `update:download` | status atual |
 | `installUpdate()` | `update:install` | — (fecha, instala em silêncio e reabre) |
 | `on(event, cb)` | — | função para remover o listener |
