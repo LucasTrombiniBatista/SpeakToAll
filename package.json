@@ -1,6 +1,6 @@
 {
   "name": "speaktoall",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Fale. Vira texto. Em qualquer lugar.",
   "main": "src/main/main.js",
   "engines": {
