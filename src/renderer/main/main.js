@@ -3,6 +3,31 @@ const { fmtClock, fileToWav, createRecorder } = window.staAudio;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+/* ---------- lobby de abertura: logo se monta enquanto o app carrega ---------- */
+// O renderer só carrega em arranque a frio (fechar esconde no tray), então o lobby aparece
+// em todo arranque e nunca ao reabrir do tray. Sai quando a montagem (3,5 s) terminou e o
+// init acabou; teto de 6 s. Clique ou tecla pula e corta o jingle.
+function startLobby() {
+  const el = $('#splash');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.remove(); return { finish() {} }; }
+  el.hidden = false;
+  const jingle = window.staJingle?.play();
+  let gone = false;
+  const leave = (skipped) => {
+    if (gone) return;
+    gone = true;
+    if (skipped) jingle?.stop();
+    el.classList.add('out');
+  };
+  el.addEventListener('animationend', (e) => { if (e.animationName === 'lobby-out') el.remove(); });
+  el.addEventListener('click', () => leave(true));
+  addEventListener('keydown', () => leave(true), { once: true });
+  const assembled = new Promise((r) => setTimeout(r, 3500));
+  setTimeout(() => leave(false), 6000);
+  return { finish: () => assembled.then(() => leave(false)) };
+}
+const lobby = startLobby();
+
 const SOURCE_LABEL = { dictation: 'DITADO', import: 'IMPORTADA', meeting: 'REUNIÃO' };
 let settings = {};
 let dict = {};
@@ -62,11 +87,19 @@ function drawBars(canvas, levels, color) {
 }
 
 /* ---------- navegação ---------- */
-function showView(name) {
+// Só a view que entra anima (opacity/transform, sem layout); a que sai some na hora.
+let currentView = null;
+function showView(name, { animate = true } = {}) {
+  if (name === currentView) return;
+  currentView = name;
   $$('.nav button').forEach((b) => (b.dataset.view === name ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
-  $$('.view').forEach((v) => (v.hidden = v.dataset.view !== name));
-  try { localStorage.setItem('sta:view', name); } catch {}
+  $$('.view').forEach((v) => {
+    v.hidden = v.dataset.view !== name;
+    v.classList.remove('view-enter');
+    if (!v.hidden && animate) { void v.offsetWidth; v.classList.add('view-enter'); }
+  });
 }
+$$('.view').forEach((v) => v.addEventListener('animationend', (e) => { if (e.target === v) v.classList.remove('view-enter'); }));
 $$('.nav button').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
 
 /* ---------- tema e status do motor ---------- */
@@ -862,9 +895,10 @@ $('#ob-next').addEventListener('click', async () => {
   api.on('dictation:state', ({ state }) => { if (state === 'needs-setup') openOnboarding(0); });
   await loadNotes();
 
-  let view = 'notes';
-  try { view = localStorage.getItem('sta:view') || view; } catch {}
-  showView(view);
+  // Sempre abre na aba principal; ao voltar do segundo plano também.
+  showView('notes', { animate: false });
+  api.on('window:shown', () => showView('notes'));
+  lobby.finish();
   if (notes[0]) openNote(notes[0].id);
 
   const st = await api.engineStatus();
