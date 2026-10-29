@@ -77,6 +77,7 @@ Para testar a interface no Electron enquanto outra instância do app está abert
 - **O Whisper imita o estilo do prompt** — prompt sem pontuação gera texto sem pontuação.
 - **Clipboard**: esperar ~350 ms antes de restaurar, senão o destino cola o conteúdo antigo.
 - **Parar o servidor antes de reinstalar** — o Windows trava `.exe` em uso (`engine.install` já faz isso).
+- **Trocar de flavor (CPU ↔ CUDA)** apaga `bin/whisper/`: `install()` espera o `whisper-server` sair (`stopAndWait`) antes, porque o Windows mantém o .exe/DLLs travados por alguns instantes após o kill (EPERM). Se ainda falhar, a pasta é renomeada para `whisper-old-*` e limpa no próximo `init()`.
 - **Não declarar `const wp`** nos scripts do renderer: colide com o global `window.wp` do contextBridge (por isso `main.js` usa `api`).
 - **Elementos com `display:flex` ignoram `hidden`** — `tokens.css` força `[hidden]{display:none!important}`.
 
