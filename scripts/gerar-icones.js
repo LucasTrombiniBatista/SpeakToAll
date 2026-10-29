@@ -38,8 +38,9 @@ async function render(svgFile, size, height = size) {
   win.webContents.invalidate();
   await new Promise((r) => setTimeout(r, 300));
   win.destroy();
-  const img = frame;
-  return img.resize({ width: size, height, quality: 'best' });
+  // O Windows impõe um tamanho mínimo de janela: em tamanhos pequenos o quadro sai maior que o
+  // pedido, com a imagem no canto. Recorta essa área em vez de redimensionar o quadro inteiro.
+  return frame.crop({ x: 0, y: 0, width: size, height });
 }
 
 // Entrada DIB 32-bit (BGRA, linhas de baixo para cima + máscara AND zerada). O NSIS e partes
