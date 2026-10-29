@@ -1,5 +1,5 @@
 // Pílula de gravação. Comandos vindos do main: start, stop, cancel, lock, transcribing, done, error.
-const { createRecorder, fmtClock } = window.staAudio;
+const { createRecorder, fmtClock, SAMPLE_RATE } = window.staAudio;
 const $ = (id) => document.getElementById(id);
 const MIN_MS = 350;
 
@@ -10,9 +10,24 @@ let raf = 0;
 let hideTimer = 0;
 let opts = { sounds: true, micDevice: 'default' };
 
+// Um AudioContext só, para gravar e para os bipes: criar um por ditado atrasa o início da gravação.
+// Fica suspenso entre ditados para não manter o dispositivo de áudio aberto.
+let audioCtx = null;
+let idleTimer = 0;
+function audio() {
+  clearTimeout(idleTimer);
+  audioCtx = audioCtx || new AudioContext({ sampleRate: SAMPLE_RATE });
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function idleLater() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (!rec && audioCtx) audioCtx.suspend(); }, 1000);
+}
+
 function beep(freq, dur = 0.08) {
   if (!opts.sounds) return;
-  const ctx = new AudioContext();
+  const ctx = audio();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.frequency.value = freq;
@@ -20,7 +35,6 @@ function beep(freq, dur = 0.08) {
   gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
   osc.connect(gain).connect(ctx.destination);
   osc.start(); osc.stop(ctx.currentTime + dur);
-  osc.onended = () => ctx.close();
 }
 
 function setState(state, label = '') {
@@ -73,7 +87,7 @@ async function start(cmd = {}) {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { deviceId: opts.micDevice, echoCancellation: true, noiseSuppression: true },
     });
-    rec = await createRecorder([stream], (lv) => levels.push(lv));
+    rec = await createRecorder([stream], (lv) => levels.push(lv), audio());
   } catch {
     return setState('error', 'Microfone indisponível');
   }
@@ -85,8 +99,9 @@ async function stop() {
   if (!rec) return;
   cancelAnimationFrame(raf);
   const r = rec; rec = null;
-  const { wav, durationMs } = await r.stop();
+  const { wav, durationMs } = await r.stop({ trim: true });
   beep(660);
+  idleLater();
   if (durationMs >= MIN_MS) setState('transcribing');
   window.wp.sendAudio(wav);
 }
@@ -94,6 +109,7 @@ async function stop() {
 async function cancel() {
   cancelAnimationFrame(raf);
   if (rec) { await rec.stop(); rec = null; }
+  idleLater();
   hide();
 }
 
@@ -103,7 +119,6 @@ function onCommand(cmd) {
     case 'stop': return stop();
     case 'cancel': return cancel();
     case 'lock': $('lock').hidden = false; return;
-    case 'recording': return start(cmd);
     case 'transcribing': return setState('transcribing');
     case 'done': return setState('done');
     case 'error': return setState('error', cmd.message);
