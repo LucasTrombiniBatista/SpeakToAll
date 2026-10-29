@@ -1,5 +1,5 @@
 // Gera os PNG/ICO do ícone a partir de assets/*.svg. Rodar com: npx electron scripts/gerar-icones.js
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, nativeImage } = require('electron');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -28,19 +28,36 @@ async function render(svgFile, size, height = size) {
     backgroundColor: '#00000000', useContentSize: true,
     webPreferences: { offscreen: true },
   });
-  // Offscreen não suporta capturePage: pega o último quadro do evento paint.
+  // Offscreen não suporta capturePage: pega o último quadro do evento paint. Copia os pixels
+  // na hora: a imagem do evento pode ser liberada depois do callback e virar 0x0.
   let frame = null;
-  win.webContents.on('paint', (_e, _dirty, image) => { frame = image; });
+  win.webContents.on('paint', (_e, _dirty, image) => {
+    const sz = image.getSize();
+    if (sz.width >= size && sz.height >= height) frame = nativeImage.createFromBitmap(image.toBitmap(), sz);
+  });
   const tmp = path.join(os.tmpdir(), 'sta-icon-' + size + '.html');
   fs.writeFileSync(tmp, html);
   await win.loadFile(tmp);
   await win.webContents.executeJavaScript('document.images[0].decode()');
   win.webContents.invalidate();
-  await new Promise((r) => setTimeout(r, 300));
+  for (let t = 0; t < 30 && !frame; t++) await new Promise((r) => setTimeout(r, 100));
+  await new Promise((r) => setTimeout(r, 300)); // deixa chegar o quadro final, já com a imagem
   win.destroy();
+  if (!frame) throw new Error(`${svgFile}: nenhum quadro de ${size}x${height}`);
   // O Windows impõe um tamanho mínimo de janela: em tamanhos pequenos o quadro sai maior que o
   // pedido, com a imagem no canto. Recorta essa área em vez de redimensionar o quadro inteiro.
-  return frame.crop({ x: 0, y: 0, width: size, height });
+  const img = frame.crop({ x: 0, y: 0, width: size, height });
+  const got = img.getSize();
+  if (got.width !== size || got.height !== height) throw new Error(`${svgFile}: quadro ${got.width}x${got.height}, esperado ${size}x${height}`);
+  return img;
+}
+
+// Tamanhos pequenos: renderiza grande e reduz. O quadro offscreen de janelas pequenas não cobre
+// o recorte, e o crop devolvia imagem vazia (ICO com entradas sem pixels → ícone em branco).
+const BIG = 256;
+async function renderIcon(svgFile, size) {
+  const img = await render(svgFile, BIG);
+  return size === BIG ? img : img.resize({ width: size, height: size, quality: 'best' });
 }
 
 // Entrada DIB 32-bit (BGRA, linhas de baixo para cima + máscara AND zerada). O NSIS e partes
@@ -112,15 +129,15 @@ function bmp24(img) {
 
 app.whenReady().then(async () => {
   const images = [];
-  for (const size of ICO_SIZES) images.push({ size, img: await render(size <= SMALL_MAX ? 'tray.svg' : 'icon.svg', size) });
+  for (const size of ICO_SIZES) images.push({ size, img: await renderIcon(size <= SMALL_MAX ? 'tray.svg' : 'icon.svg', size) });
   const ico = buildIco(images);
   fs.writeFileSync(path.join(ROOT, 'build', 'icon.ico'), ico);
   fs.writeFileSync(path.join(ROOT, 'assets', 'icon.ico'), ico); // janela/barra de tarefas (build/ não é empacotado)
   fs.writeFileSync(path.join(ROOT, 'build', 'icon.png'), (await render('icon.svg', 512)).toPNG());
-  fs.writeFileSync(path.join(ROOT, 'assets', 'icon.png'), (await render('icon.svg', 256)).toPNG());
+  fs.writeFileSync(path.join(ROOT, 'assets', 'icon.png'), (await renderIcon('icon.svg', 256)).toPNG());
   for (const name of ['tray', 'tray-rec']) {
     for (const [suffix, size] of Object.entries(TRAY_SCALES)) {
-      fs.writeFileSync(path.join(ROOT, 'assets', `${name}${suffix}.png`), (await render(`${name}.svg`, size)).toPNG());
+      fs.writeFileSync(path.join(ROOT, 'assets', `${name}${suffix}.png`), (await renderIcon(`${name}.svg`, size)).toPNG());
     }
   }
   fs.writeFileSync(path.join(ROOT, 'build', 'installerSidebar.bmp'), bmp24(await render('installer-sidebar.svg', 164, 314)));
