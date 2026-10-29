@@ -47,6 +47,13 @@ Os PNG/ICO (instalador, executável, janela, bandeja) saem dos SVGs; depois de m
 npx electron scripts/gerar-icones.js   # build/icon.ico, build/icon.png, assets/icon.png, assets/tray*.png
 ```
 
+## Movimento
+
+- Só animar `transform` e `opacity` (e `stroke-dashoffset` em SVG): fica na composição da GPU, sem layout/repaint.
+- Troca de aba: a view que entra faz fade + sobe 6 px em 220 ms (`cubic-bezier(.2,.7,.2,1)`); a que sai some na hora.
+- Lobby de abertura: em todo arranque a frio a logo se monta enquanto o app carrega — disco, balão desenhado, ondas em cascata (que pulsam até o app ficar pronto) e o nome letra a letra — em ~3,5 s, com um jingle sintetizado em Web Audio (`src/renderer/main/jingle.js`, sem arquivo de áudio). Sai quando a montagem terminou e o init acabou (teto de 6 s); clique ou tecla pula e corta o som. Reabrir do tray não mostra o lobby e volta para a aba Notas (`window:shown`).
+- `prefers-reduced-motion: reduce` desliga o lobby (e o jingle) e as transições.
+
 ## Componentes (`tokens.css`)
 
 | Classe | Descrição |
