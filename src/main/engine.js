@@ -222,8 +222,6 @@ function stopAndWait(timeoutMs = 5000) {
   return exited;
 }
 
-async function restart(settings) { stop(); return start(settings); }
-
 async function transcribe(wav, { language } = {}) {
   if (!ready) throw new Error('Engine não está pronto');
   const buf = Buffer.isBuffer(wav) ? wav : Buffer.from(wav);
@@ -321,7 +319,7 @@ function cleanTranscript(text) {
 process.on('exit', () => { try { proc?.kill(); } catch {} });
 
 Object.assign(engine, {
-  MODELS, init, detectHardware, install, cancel, start, stop, restart, status,
-  transcribe, transcribeFile, postProcess, cleanTranscript, freePort, joinSegments, threadsFor,
+  MODELS, init, detectHardware, install, cancel, start, stop, status,
+  transcribe, transcribeFile, postProcess, cleanTranscript, joinSegments, threadsFor,
 });
 module.exports = engine;
