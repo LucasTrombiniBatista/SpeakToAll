@@ -231,7 +231,7 @@ async function transcribe(wav, { language } = {}) {
   fd.append('file', new Blob([buf], { type: 'audio/wav' }), 'audio.wav');
   fd.append('response_format', 'verbose_json');
   fd.append('temperature', '0');
-  fd.append('temperature_inc', '0.2');
+  fd.append('temperature_inc', '0'); // sem fallback: re-decodificar multiplica o tempo do ditado
   if (language) fd.append('language', language);
   const res = await fetch(`http://127.0.0.1:${port}/inference`, { method: 'POST', body: fd });
   if (!res.ok) throw new Error(`whisper-server HTTP ${res.status}`);
