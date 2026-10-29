@@ -222,8 +222,6 @@ function stopAndWait(timeoutMs = 5000) {
   return exited;
 }
 
-async function restart(settings) { stop(); return start(settings); }
-
 async function transcribe(wav, { language } = {}) {
   if (!ready) throw new Error('Engine não está pronto');
   const buf = Buffer.isBuffer(wav) ? wav : Buffer.from(wav);
@@ -231,7 +229,7 @@ async function transcribe(wav, { language } = {}) {
   fd.append('file', new Blob([buf], { type: 'audio/wav' }), 'audio.wav');
   fd.append('response_format', 'verbose_json');
   fd.append('temperature', '0');
-  fd.append('temperature_inc', '0.2');
+  fd.append('temperature_inc', '0'); // sem fallback: re-decodificar multiplica o tempo do ditado
   if (language) fd.append('language', language);
   const res = await fetch(`http://127.0.0.1:${port}/inference`, { method: 'POST', body: fd });
   if (!res.ok) throw new Error(`whisper-server HTTP ${res.status}`);
@@ -321,7 +319,7 @@ function cleanTranscript(text) {
 process.on('exit', () => { try { proc?.kill(); } catch {} });
 
 Object.assign(engine, {
-  MODELS, init, detectHardware, install, cancel, start, stop, restart, status,
-  transcribe, transcribeFile, postProcess, cleanTranscript, freePort, joinSegments, threadsFor,
+  MODELS, init, detectHardware, install, cancel, start, stop, status,
+  transcribe, transcribeFile, postProcess, cleanTranscript, joinSegments, threadsFor,
 });
 module.exports = engine;
