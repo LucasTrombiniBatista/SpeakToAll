@@ -76,15 +76,17 @@ function enqueue(fn) {
 
 function send(line) { return enqueue(() => rawSend(line)); }
 
-async function pasteText(text) {
+// onPasted avisa assim que o Ctrl+V sai; a restauração continua na fila sem segurar o ditado.
+async function pasteText(text, onPasted) {
   const { clipboard } = require('electron');
   const prevText = clipboard.readText();
   const prevImage = clipboard.readImage();
   const hadImage = prevImage && !prevImage.isEmpty();
   clipboard.writeText(text);
-  await sleep(80);
+  await sleep(30);
   try {
     await rawSend('PASTE');
+    onPasted?.();
   } finally {
     // Esperar antes de restaurar, senão o app destino cola o conteúdo antigo.
     await sleep(350);
@@ -101,10 +103,10 @@ async function inject(text, mode = 'paste') {
   if (mode === 'type') {
     return send('TYPE ' + Buffer.from(String(text), 'utf8').toString('base64'));
   }
-  return enqueue(() => pasteText(String(text)));
+  return new Promise((resolve, reject) => {
+    enqueue(() => pasteText(String(text), resolve)).then(resolve, reject);
+  });
 }
-
-function ping() { return send('PING'); }
 
 function stop() {
   stopping = true;
@@ -115,4 +117,4 @@ function stop() {
   setTimeout(() => { try { p.kill(); } catch {} }, 500);
 }
 
-module.exports = { start, stop, inject, ping, SCRIPT };
+module.exports = { start, stop, inject, SCRIPT };
