@@ -222,8 +222,12 @@ $('#note-title').addEventListener('input', (e) => scheduleSave({ title: e.target
 $('#note-text').addEventListener('input', (e) => scheduleSave({ text: e.target.value }));
 
 $('#note-copy').addEventListener('click', async () => {
-  await navigator.clipboard.writeText($('#note-text').value);
-  toast('Copiado');
+  try {
+    await navigator.clipboard.writeText($('#note-text').value);
+    toast('Copiado');
+  } catch {
+    toast('Não foi possível copiar');
+  }
 });
 $('#note-export-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#note-export-menu').hidden ^= 1; });
 document.addEventListener('click', () => ($('#note-export-menu').hidden = true));

@@ -14,7 +14,7 @@ let overlayReady = null;
 let quitting = false;
 
 function setupMedia() {
-  const allowed = ['media', 'audioCapture', 'display-capture'];
+  const allowed = ['media', 'audioCapture', 'display-capture', 'clipboard-sanitized-write'];
   session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(allowed.includes(perm)));
   session.defaultSession.setPermissionCheckHandler((_wc, perm) => allowed.includes(perm));
   // Reunião: áudio do sistema via WASAPI loopback (o vídeo é descartado no renderer).
