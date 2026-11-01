@@ -30,7 +30,7 @@ function normalize(data) {
 
 async function getJson(url, headers) {
   const res = await fetch(url, { headers, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'follow' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} em ${url}`);
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status} em ${url}`), { status: res.status });
   return res.json();
 }
 
@@ -54,17 +54,18 @@ class Store {
   async fetchCatalog() {
     let data = null;
     let offline = false;
+    let unavailable = false; // o servidor respondeu com erro: há rede, mas não há catálogo
     try {
       data = await getJson(this.config.get().pluginCatalogUrl);
       fs.writeFileSync(this.cacheFile, JSON.stringify(data), 'utf8');
     } catch (err) {
       console.warn('[store]', err.message);
-      offline = true;
+      if (err.status) unavailable = true; else offline = true;
       try { data = JSON.parse(fs.readFileSync(this.cacheFile, 'utf8')); } catch {}
     }
     this.catalog = normalize(data);
     this.plugins.setBlocked(this.catalog.blocked);
-    return { plugins: this.catalog.plugins, offline };
+    return { plugins: this.catalog.plugins, offline, unavailable };
   }
 
   async _catalog() { return this.catalog || (await this.fetchCatalog(), this.catalog); }

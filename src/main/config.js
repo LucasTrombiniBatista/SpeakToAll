@@ -19,8 +19,11 @@ const DEFAULTS = {
   transcriptionQuality: 'fast',
   chineseVariant: 'traditional',
   enabledPlugins: [], restrictedMode: false,
-  pluginCatalogUrl: 'https://raw.githubusercontent.com/speaktoall/plugins/main/plugins.json',
+  pluginCatalogUrl: 'https://raw.githubusercontent.com/LucasTrombiniBatista/SpeakToAll/main/plugins.json',
 };
+
+// A organização do catálogo antigo nunca existiu; settings.json guarda a URL, então é preciso migrar.
+const OLD_CATALOG_URL = 'https://raw.githubusercontent.com/speaktoall/plugins/main/plugins.json';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
@@ -44,6 +47,7 @@ class Config extends EventEmitter {
     let saved = {};
     try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')) || {}; } catch {}
     this.settings = { ...clone(DEFAULTS), ...saved };
+    if (this.settings.pluginCatalogUrl === OLD_CATALOG_URL) this.settings.pluginCatalogUrl = DEFAULTS.pluginCatalogUrl;
     return this.get();
   }
 
