@@ -36,7 +36,7 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `reloadPlugins()` | `plugins:reload` | lista atualizada |
 | `runPluginCommand(pluginId, commandId)` | `plugins:run-command` | — |
 | `openPluginsFolder()` | `plugins:open-folder` | — |
-| `storeCatalog()` | `store:catalog` | `{plugins, offline}` |
+| `storeCatalog()` | `store:catalog` | `{plugins, offline, unavailable}` |
 | `installPlugin(id)` / `updatePlugin(id)` | `store:install` / `store:update` | manifest instalado |
 | `uninstallPlugin(id)` | `store:uninstall` | lista atualizada |
 | `checkPluginUpdates()` | `store:updates` | `[{id, name, current, latest, minAppVersion, compatible}]` |
