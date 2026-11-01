@@ -714,7 +714,7 @@ async function renderStore() {
   const items = catalog.plugins.filter((p) =>
     (!cat || p.category === cat) &&
     (!q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.author.toLowerCase().includes(q)));
-  $('#store-status').textContent = catalog.offline ? 'Sem conexão: mostrando o último catálogo salvo.' : '';
+  $('#store-status').textContent = catalog.offline ? 'Sem conexão: mostrando o último catálogo salvo.' : catalog.unavailable ? 'Catálogo indisponível no momento.' : '';
   const ul = $('#store-list');
   ul.replaceChildren();
   if (!items.length) {

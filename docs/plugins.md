@@ -69,7 +69,7 @@ O host injeta a classe base pela factory. Exportar direto uma classe que estende
 
 ## Loja
 
-O catálogo fica em `pluginCatalogUrl`, por padrão `https://raw.githubusercontent.com/speaktoall/plugins/main/plugins.json`:
+O catálogo fica em `pluginCatalogUrl`, por padrão `https://raw.githubusercontent.com/LucasTrombiniBatista/SpeakToAll/main/plugins.json`:
 
 ```json
 {
