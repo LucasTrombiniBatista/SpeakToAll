@@ -1,6 +1,7 @@
 // Janela principal, janela overlay e permissões de mídia.
 const { BrowserWindow, screen, session, desktopCapturer, nativeTheme } = require('electron');
 const path = require('path');
+const { t } = require('./i18n');
 
 const ROOT = path.join(__dirname, '..');
 // .ico multi-tamanho: o Windows escolhe a entrada certa para barra de tarefas, Alt+Tab e título.
@@ -116,7 +117,12 @@ async function showOverlay() {
 function overlayCommand(cmd) {
   if (!overlayWin || overlayWin.isDestroyed()) return;
   if (['start', 'transcribing', 'done', 'error'].includes(cmd.type)) showOverlay();
-  overlayWin.webContents.send('overlay:command', cmd);
+  // Rótulos no idioma da interface vão junto com cada comando.
+  const labels = {
+    transcribing: t('overlay.transcribing'), done: t('overlay.done'), error: t('overlay.error'),
+    locked: t('overlay.locked'), micUnavailable: t('overlay.mic-unavailable'),
+  };
+  overlayWin.webContents.send('overlay:command', { ...cmd, labels });
 }
 
 function hideOverlay() { overlayWin?.hide(); }

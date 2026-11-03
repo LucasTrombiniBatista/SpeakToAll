@@ -9,6 +9,8 @@ let t0 = 0;
 let raf = 0;
 let hideTimer = 0;
 let opts = { sounds: true, micDevice: 'default' };
+// Padrão em português; o main manda os rótulos no idioma da interface com cada comando.
+let labels = { transcribing: 'Transcrevendo…', done: 'Inserido', error: 'Algo deu errado', locked: 'TRAVADO', micUnavailable: 'Microfone indisponível' };
 
 // Um AudioContext só, para gravar e para os bipes: criar um por ditado atrasa o início da gravação.
 // Fica suspenso entre ditados para não manter o dispositivo de áudio aberto.
@@ -48,7 +50,7 @@ function setState(state, label = '') {
   $('i-ok').hidden = state !== 'done';
   $('i-err').hidden = state !== 'error';
   $('label').hidden = rec;
-  $('label').textContent = label || { transcribing: 'Transcrevendo…', done: 'Inserido', error: 'Algo deu errado' }[state] || '';
+  $('label').textContent = label || { transcribing: labels.transcribing, done: labels.done, error: labels.error }[state] || '';
   if (!rec) $('lock').hidden = true;
   if (state === 'done' || state === 'error') hideTimer = setTimeout(hide, state === 'done' ? 1000 : 2400);
 }
@@ -89,7 +91,7 @@ async function start(cmd = {}) {
     });
     rec = await createRecorder([stream], (lv) => levels.push(lv), audio());
   } catch {
-    return setState('error', 'Microfone indisponível');
+    return setState('error', labels.micUnavailable);
   }
   t0 = performance.now();
   draw();
@@ -114,6 +116,7 @@ async function cancel() {
 }
 
 function onCommand(cmd) {
+  if (cmd.labels) { labels = cmd.labels; $('lock').textContent = labels.locked; }
   switch (cmd.type) {
     case 'start': return start(cmd);
     case 'stop': return stop();

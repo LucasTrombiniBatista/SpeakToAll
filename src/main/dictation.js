@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
+const { t } = require('./i18n');
 
 const MIN_MS = 350;
 
@@ -26,7 +27,7 @@ class Dictation extends EventEmitter {
     if (this.state !== 'idle') return;
     const st = this.engine.status();
     if (!st.installed || !st.ready) {
-      this.windows.overlayCommand({ type: 'error', message: st.installed ? 'Motor iniciando…' : 'Configure o motor primeiro' });
+      this.windows.overlayCommand({ type: 'error', message: st.installed ? t('overlay.engine-starting') : t('overlay.setup-engine') });
       if (!st.installed) { this.windows.showMain(); this.windows.send('dictation:state', { state: 'needs-setup' }); }
       this.hotkeys.reset();
       return;

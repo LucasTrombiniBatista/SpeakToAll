@@ -71,7 +71,13 @@ Sistema de plugins (ver [plugins.md](plugins.md)).
 - `store.js`: `fetchCatalog` (com cache offline), `install`/`update`/`uninstall` a partir da última release do GitHub, `checkUpdates`.
 
 ### `i18n.js`
-`load(lang)` lê `src/common/locales/<lang>.json` (fallback `en`), `t(key, vars)` com `{var}`.
+`load(lang)` lê `src/common/locales/<lang>.json` (fallback `en`), `t(key, vars)` com `{var}`. Usado pela bandeja, notificações e rótulos do overlay (enviados com cada `overlayCommand`).
+
+**Traduções da interface.** Toda a interface sai de `src/common/locales/pt-BR.json` e `en.json`, que precisam ter as mesmas chaves (`npm test` confere isso e que toda chave usada existe):
+- HTML: `data-i18n` (texto), `data-i18n-html` (texto com `<kbd>`/`<br>`), `data-i18n-placeholder`, `data-i18n-title`, `data-i18n-aria`.
+- JS do renderer: `t('chave', { var }, 'texto em português')`.
+- Trocar o idioma em Configurações chama `applyLanguage()`, que recarrega o dicionário e redesenha listas e status sem reiniciar.
+- Novo idioma: copie `en.json` para `<lang>.json`, traduza e adicione a opção no select `uiLanguage`.
 
 ## Front-end — `src/renderer/`
 

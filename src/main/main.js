@@ -48,9 +48,9 @@ function notifyUpdate(kind, st) {
   if ((win && win.isVisible()) || !Notification.isSupported()) return;
   const v = st?.version ? ` ${st.version}` : '';
   const body = {
-    downloaded: `Versão${v} pronta. Ela será instalada em silêncio quando você reiniciar ou sair do app.`,
-    latest: `Você já está na versão mais recente (${app.getVersion()}).`,
-    error: 'Não foi possível verificar atualizações.',
+    downloaded: i18n.t('notify.downloaded', { v }),
+    latest: i18n.t('notify.latest', { version: app.getVersion() }),
+    error: i18n.t('notify.error'),
   }[kind];
   const n = new Notification({ title: 'SpeakToAll', body, icon: windows.ICON, silent: true });
   n.on('click', () => windows.showMain());
@@ -223,6 +223,7 @@ app.whenReady().then(async () => {
   windows.setTheme(config.get().theme);
   windows.createMain({ closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode });
   windows.createOverlay();
+  i18n.load(config.get().uiLanguage);
 
   tray.createTray({
     onOpen: () => windows.showMain(),
@@ -252,6 +253,7 @@ app.whenReady().then(async () => {
     if (keys.includes('restrictedMode')) plugins.reload();
     if (keys.some((k) => RESTART_KEYS.includes(k)) && !installing) startEngine();
     if (keys.some((k) => HOTKEY_KEYS.includes(k))) configureHotkeys(s);
+    if (keys.includes('uiLanguage')) { i18n.load(s.uiLanguage); tray.refresh(); }
     if (keys.includes('theme')) windows.setTheme(s.theme);
     if (keys.includes('windowMode')) windows.setWindowMode(s.windowMode);
     if (keys.includes('autoCheckUpdates')) updater.schedule(s.autoCheckUpdates);

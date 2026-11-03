@@ -28,9 +28,11 @@ function startLobby() {
 }
 const lobby = startLobby();
 
-const SOURCE_LABEL = { dictation: 'DITADO', import: 'IMPORTADA', meeting: 'REUNIÃO' };
+const sourceLabel = (src) => ({ dictation: t('js.src-dictation', {}, 'DITADO'), import: t('js.src-import', {}, 'IMPORTADA'), meeting: t('js.src-meeting', {}, 'REUNIÃO') })[src];
 let settings = {};
 let dict = {};
+// Locale das datas acompanha o idioma da interface.
+const locale = () => (settings.uiLanguage === 'en' ? 'en-US' : 'pt-BR');
 
 /* ---------- utilidades ---------- */
 function t(key, vars = {}, fallback = '') {
@@ -42,6 +44,11 @@ function t(key, vars = {}, fallback = '') {
 function applyI18n() {
   $$('[data-i18n]').forEach((el) => { if (dict[el.dataset.i18n]) el.textContent = dict[el.dataset.i18n]; });
   $$('[data-i18n-placeholder]').forEach((el) => { if (dict[el.dataset.i18nPlaceholder]) el.placeholder = dict[el.dataset.i18nPlaceholder]; });
+  // Só HTML dos nossos dicionários (kbd/br/span), nunca texto de terceiros.
+  $$('[data-i18n-html]').forEach((el) => { if (dict[el.dataset.i18nHtml]) el.innerHTML = dict[el.dataset.i18nHtml]; });
+  $$('[data-i18n-title]').forEach((el) => { if (dict[el.dataset.i18nTitle]) el.title = dict[el.dataset.i18nTitle]; });
+  $$('[data-i18n-aria]').forEach((el) => { if (dict[el.dataset.i18nAria]) el.setAttribute('aria-label', dict[el.dataset.i18nAria]); });
+  document.documentElement.lang = settings.uiLanguage || 'pt-BR';
 }
 
 let toastTimer;
@@ -56,17 +63,17 @@ function fmtDate(ts) {
   const d = new Date(ts);
   const sameDay = d.toDateString() === new Date().toDateString();
   return sameDay
-    ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    ? d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString(locale(), { day: '2-digit', month: 'short' });
 }
 
 function dayGroup(ts) {
   const d = new Date(ts); d.setHours(0, 0, 0, 0);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diff = (today - d) / 86400000;
-  if (diff === 0) return 'Hoje';
-  if (diff === 1) return 'Ontem';
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+  if (diff === 0) return t('js.today', {}, 'Hoje');
+  if (diff === 1) return t('js.yesterday', {}, 'Ontem');
+  return d.toLocaleDateString(locale(), { day: '2-digit', month: 'long' });
 }
 
 function drawBars(canvas, levels, color) {
@@ -111,8 +118,8 @@ function applyTheme() {
 function renderEngine(st) {
   const pill = $('#engine-status .pill');
   pill.classList.toggle('ok', !!st.ready);
-  $('#engine-label').textContent = st.ready ? (st.model || '').replace(/-q5_0$/, '') : st.installed ? 'iniciando…' : 'sem motor';
-  $('#set-engine-info').textContent = st.ready ? `whisper.cpp · ${st.flavor} · ${st.model}` : 'não instalado';
+  $('#engine-label').textContent = st.ready ? (st.model || '').replace(/-q5_0$/, '') : st.installed ? t('js.engine-starting', {}, 'iniciando…') : t('js.engine-none', {}, 'sem motor');
+  $('#set-engine-info').textContent = st.ready ? `whisper.cpp · ${st.flavor} · ${st.model}` : t('js.engine-not-installed', {}, 'não instalado');
 }
 $('#engine-status').addEventListener('click', () => showView('settings'));
 
@@ -140,7 +147,7 @@ function renderList() {
   const ul = $('#notes-ul');
   ul.replaceChildren();
   if (!items.length) {
-    ul.innerHTML = `<li class="list-empty">${q ? 'Nada encontrado.' : 'Nenhuma nota ainda.'}</li>`;
+    ul.innerHTML = `<li class="list-empty">${q ? t('js.nothing-found', {}, 'Nada encontrado.') : t('js.no-notes', {}, 'Nenhuma nota ainda.')}</li>`;
     return;
   }
   let lastGroup = '';
@@ -155,7 +162,7 @@ function renderList() {
     const b = document.createElement('button');
     b.setAttribute('aria-selected', n.id === currentId);
     b.innerHTML = `<span class="t"></span><span class="d mono">${fmtDate(n.createdAt)}</span><span class="p"></span>
-      <span class="src"><span class="mono muted">${SOURCE_LABEL[n.source]} · ${fmtClock(n.durationMs)}</span></span>`;
+      <span class="src"><span class="mono muted">${sourceLabel(n.source)} · ${fmtClock(n.durationMs)}</span></span>`;
     $('.t', b).textContent = n.title;
     $('.p', b).textContent = n.text;
     b.addEventListener('click', () => openNote(n.id));
@@ -178,8 +185,8 @@ async function openNote(id) {
   const n = await api.getNote(id);
   $('#note-empty').hidden = true;
   $('#note').hidden = false;
-  $('#note-source').textContent = SOURCE_LABEL[n.source];
-  $('#note-date').textContent = new Date(n.createdAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' });
+  $('#note-source').textContent = sourceLabel(n.source);
+  $('#note-date').textContent = new Date(n.createdAt).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' });
   $('#note-duration').textContent = fmtClock(n.durationMs, true);
   $('#note-title').value = n.title;
   $('#note-text').value = n.text;
@@ -224,19 +231,19 @@ $('#note-text').addEventListener('input', (e) => scheduleSave({ text: e.target.v
 $('#note-copy').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText($('#note-text').value);
-    toast('Copiado');
+    toast(t('js.copied', {}, 'Copiado'));
   } catch {
-    toast('Não foi possível copiar');
+    toast(t('js.copy-failed', {}, 'Não foi possível copiar'));
   }
 });
 $('#note-export-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#note-export-menu').hidden ^= 1; });
 document.addEventListener('click', () => ($('#note-export-menu').hidden = true));
 $$('#note-export-menu button').forEach((b) => b.addEventListener('click', async () => {
   await api.exportNote(currentId, b.dataset.fmt);
-  toast(`Exportado como .${b.dataset.fmt}`);
+  toast(t('js.exported', { fmt: b.dataset.fmt }, 'Exportado como .{fmt}'));
 }));
 $('#note-delete').addEventListener('click', async () => {
-  if (!confirm('Excluir esta nota?')) return;
+  if (!confirm(t('js.delete-note', {}, 'Excluir esta nota?'))) return;
   await api.deleteNote(currentId);
   currentId = null;
   await loadNotes();
@@ -256,16 +263,16 @@ $('#note-ai').addEventListener('click', () => {
 $('#ai-close').addEventListener('click', () => ($('#ai-panel').hidden = true));
 $('#ai-summarize').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
-  btn.disabled = true; btn.textContent = 'Resumindo…';
+  btn.disabled = true; btn.textContent = t('js.summarizing', {}, 'Resumindo…');
   try {
     const { title, summary } = await api.summarize(currentId);
     $('#note-title').value = title;
     renderSummary(summary);
     await loadNotes();
   } catch (err) {
-    toast(`IA indisponível: ${err.message}`);
+    toast(t('js.ai-unavailable', { msg: err.message }, 'IA indisponível: {msg}'));
   } finally {
-    btn.disabled = false; btn.textContent = 'Gerar resumo e título';
+    btn.disabled = false; btn.textContent = t('notas.gerar-resumo-e-titulo', {}, 'Gerar resumo e título');
   }
 });
 
@@ -313,7 +320,7 @@ function renderJob(job, container) {
   }
   const pill = $('.pill', el);
   pill.className = `pill ${job.status === 'done' ? 'ok' : job.status === 'running' ? 'cobalt' : ''}`;
-  pill.innerHTML = `<span class="dot"></span>${{ queued: 'NA FILA', running: 'TRANSCREVENDO', done: 'CONCLUÍDO', error: 'ERRO' }[job.status]}`;
+  pill.innerHTML = `<span class="dot"></span>${{ queued: t('js.job-queued', {}, 'NA FILA'), running: t('js.job-running', {}, 'TRANSCREVENDO'), done: t('js.job-done', {}, 'CONCLUÍDO'), error: t('js.job-error', {}, 'ERRO') }[job.status]}`;
   $('.pct', el).textContent = `${Math.round(job.progress)}%`;
   $('.progress i', el).style.width = `${job.progress}%`;
   const segs = $('.job-segs', el);
@@ -327,7 +334,7 @@ function renderJob(job, container) {
   if (job.status === 'done' && !el.dataset.linked) {
     el.dataset.linked = '1';
     const open = document.createElement('button');
-    open.className = 'btn btn-sm'; open.textContent = 'Abrir nota';
+    open.className = 'btn btn-sm'; open.textContent = t('js.open-note', {}, 'Abrir nota');
     open.addEventListener('click', () => { showView('notes'); openNote(job.id); });
     $('.job-top', el).append(open);
   }
@@ -341,7 +348,7 @@ async function importFiles(files) {
       const id = await api.transcribeFile(f.name, wav, durationMs);
       if (id && !jobEls.has(id)) renderJob({ id, name: f.name, status: 'queued', progress: 0, segments: [] });
     } catch (err) {
-      toast(`Não foi possível ler ${f.name}`);
+      toast(t('js.read-failed', { name: f.name }, 'Não foi possível ler {name}'));
     }
   }
 }
@@ -360,10 +367,10 @@ function setMeetingUi(live) {
   $('#nav-rec').hidden = !live;
   const st = $('#meeting-state');
   st.className = `pill ${live ? 'onair' : ''}`;
-  st.lastChild.textContent = live ? 'ON AIR' : 'PRONTO';
+  st.lastChild.textContent = live ? 'ON AIR' : t('reuniao.pronto', {}, 'PRONTO');
   const btn = $('#meeting-btn');
   btn.className = `btn btn-lg ${live ? 'btn-onair' : 'btn-ink'}`;
-  btn.textContent = live ? 'Parar e transcrever' : 'Iniciar gravação';
+  btn.textContent = live ? t('js.stop-transcribe', {}, 'Parar e transcrever') : t('reuniao.iniciar-gravacao', {}, 'Iniciar gravação');
   $('#meeting-mic').disabled = live;
 }
 
@@ -377,7 +384,7 @@ async function startMeeting() {
   if ($('#meeting-mic').checked) {
     try { streams.push(await navigator.mediaDevices.getUserMedia({ audio: { deviceId: settings.micDevice } })); } catch {}
   }
-  if (!streams.length) return toast('Nenhuma fonte de áudio disponível');
+  if (!streams.length) return toast(t('js.no-audio-source', {}, 'Nenhuma fonte de áudio disponível'));
 
   const levels = [];
   const rec = await createRecorder(streams, (lv) => levels.push(lv));
@@ -400,7 +407,7 @@ async function stopMeeting() {
   const { wav, durationMs } = await meeting.rec.stop();
   meeting = null;
   setMeetingUi(false);
-  const title = $('#meeting-title').value.trim() || `Reunião ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`;
+  const title = $('#meeting-title').value.trim() || `${t('reuniao.reuniao', {}, 'Reunião')} ${new Date().toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' })}`;
   const id = await api.meetingDone(wav, { title, durationMs });
   if (id) renderJob({ id, name: title, status: 'queued', progress: 0, segments: [] }, $('#meeting-jobs'));
   $('#meeting-clock').textContent = '00:00:00';
@@ -413,7 +420,7 @@ let obsTags = [];
 function renderObsidianSent(relPath) {
   const b = $('#note-obsidian');
   b.classList.toggle('sent', !!relPath);
-  b.title = relPath ? `Já enviada: ${relPath}` : 'Enviar ao Obsidian';
+  b.title = relPath ? t('js.already-sent', { path: relPath }, 'Já enviada: {path}') : t('attr.enviar-ao-obsidian', {}, 'Enviar ao Obsidian');
 }
 
 function renderObsTags() {
@@ -421,7 +428,7 @@ function renderObsTags() {
     const chip = el('span', 'chip', `#${tag}`);
     const x = el('button', null, '×');
     x.type = 'button';
-    x.setAttribute('aria-label', `Remover ${tag}`);
+    x.setAttribute('aria-label', t('js.remove-tag', { tag }, 'Remover {tag}'));
     x.onclick = () => { obsTags = obsTags.filter((t) => t !== tag); renderObsTags(); };
     chip.append(x);
     return chip;
@@ -437,12 +444,12 @@ const fillDatalist = (sel, values) => $(sel).replaceChildren(...values.map((v) =
 
 async function openObsidian() {
   if (!settings.obsidianVault) {
-    toast('Escolha a pasta do Obsidian em Configurações');
+    toast(t('js.pick-vault', {}, 'Escolha a pasta do Obsidian em Configurações'));
     showView('settings');
     return;
   }
   const btn = $('#note-obsidian');
-  btn.disabled = true; btn.textContent = 'Organizando…';
+  btn.disabled = true; btn.textContent = t('js.organizing', {}, 'Organizando…');
   try {
     const { folders, tags, presets, suggestion, aiError } = await api.obsidianSuggest(currentId);
     fillDatalist('#obs-folders', [...new Set([...presets, ...folders])]);
@@ -453,7 +460,7 @@ async function openObsidian() {
     obsTags = [];
     suggestion.tags.forEach(addObsTag);
     renderObsTags();
-    $('#obs-status').textContent = aiError ? `IA indisponível (${aiError}). Preencha à mão.` : '';
+    $('#obs-status').textContent = aiError ? t('js.ai-unavailable-manual', { msg: aiError }, 'IA indisponível ({msg}). Preencha à mão.') : '';
     $('#obsidian').hidden = false;
     $('#obs-title').focus();
   } catch (err) {
@@ -483,9 +490,9 @@ $('#obs-form').addEventListener('submit', async (e) => {
     });
     $('#obsidian').hidden = true;
     renderObsidianSent(path);
-    toast(`Salvo em ${path}`);
+    toast(t('js.saved-in', { path }, 'Salvo em {path}'));
   } catch (err) {
-    toast(`Falha ao salvar: ${errMsg(err)}`);
+    toast(t('js.save-failed', { msg: errMsg(err) }, 'Falha ao salvar: {msg}'));
   } finally {
     save.disabled = false;
   }
@@ -510,7 +517,7 @@ function bindSettings() {
   });
   const preset = $('#set-ai-preset');
   preset.value = [...preset.options].some((o) => o.value === settings.aiBaseUrl) ? settings.aiBaseUrl : '';
-  $('#set-obsidian-vault').textContent = settings.obsidianVault || 'Nenhuma pasta escolhida';
+  $('#set-obsidian-vault').textContent = settings.obsidianVault || t('configuracoes.nenhuma-pasta-escolhida', {}, 'Nenhuma pasta escolhida');
   $('#set-obsidian-clear').hidden = !settings.obsidianVault;
   renderObsidianStatus();
 }
@@ -519,8 +526,24 @@ async function renderObsidianStatus() {
   const warn = $('#set-obsidian-warn');
   if (!settings.obsidianVault) { warn.hidden = true; return; }
   const { exists, isVault } = await api.obsidianStatus();
-  warn.textContent = exists ? 'Esta pasta não é um vault do Obsidian. Os arquivos .md serão salvos normalmente.' : 'Esta pasta não existe mais. Escolha outra.';
+  warn.textContent = exists ? t('configuracoes.esta-pasta-nao-e', {}, 'Esta pasta não é um vault do Obsidian. Os arquivos .md serão salvos normalmente.') : t('js.vault-missing', {}, 'Esta pasta não existe mais. Escolha outra.');
   warn.hidden = exists && isVault;
+}
+
+// Recarrega o dicionário e redesenha as partes que o JS escreve (listas, status, botões).
+async function applyLanguage() {
+  dict = await api.i18n();
+  applyI18n();
+  renderHotkey();
+  bindSettings();
+  renderList();
+  if (currentId) openNote(currentId);
+  renderEngine(await api.engineStatus());
+  renderUpdate(updateState);
+  setMeetingUi(!!meeting);
+  renderPlugins();
+  // Só refaz passos sem efeitos (o 2 reinstalaria o motor, o 3 pararia o teste de microfone).
+  if (!$('#onboarding').hidden && [0, OB_LAST].includes(obStep)) goStep(obStep);
 }
 
 async function saveSetting(key, value) {
@@ -528,16 +551,16 @@ async function saveSetting(key, value) {
   bindSettings();
   applyTheme();
   renderHotkey();
-  if (key === 'uiLanguage') { dict = await api.i18n(); applyI18n(); }
+  if (key === 'uiLanguage') await applyLanguage();
   if (key === 'restrictedMode') renderPlugins();
-  if (['model', 'engineFlavor', 'language', 'initialPrompt'].includes(key)) toast('Motor será reiniciado');
+  if (['model', 'engineFlavor', 'language', 'initialPrompt'].includes(key)) toast(t('js.engine-restart', {}, 'Motor será reiniciado'));
 }
 
 async function loadMics() {
   try {
     const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default');
     const sel = $('#set-mic');
-    for (const d of devs) sel.add(new Option(d.label || `Microfone ${sel.length}`, d.deviceId));
+    for (const d of devs) sel.add(new Option(d.label || t('js.mic-n', { n: sel.length }, 'Microfone {n}'), d.deviceId));
     sel.value = settings.micDevice || 'default';
   } catch {}
 }
@@ -546,10 +569,10 @@ $('#set-hotkey').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   btn.classList.add('capturing');
   $('#set-hotkey-label').textContent = '…';
-  btn.lastChild.textContent = 'Pressione a tecla';
+  btn.lastChild.textContent = t('js.press-key', {}, 'Pressione a tecla');
   const key = await api.captureHotkey();
   btn.classList.remove('capturing');
-  btn.lastChild.textContent = 'Alterar';
+  btn.lastChild.textContent = t('configuracoes.alterar', {}, 'Alterar');
   if (key) await saveSetting('hotkey', key);
   else renderHotkey();
 });
@@ -563,16 +586,16 @@ function renderUpdate(st) {
   updateState = st;
   const v = st.version ? ` ${st.version}` : '';
   const text = {
-    unsupported: 'Atualização automática só no app instalado',
-    idle: 'Ainda não verificado',
-    checking: 'Verificando…',
-    latest: 'Você está na versão mais recente',
-    available: `Versão${v} disponível`,
-    downloading: `Baixando${v}… ${st.percent || 0}%`,
-    downloaded: `Versão${v} pronta para instalar`,
-    error: `Erro: ${st.error || 'falha ao verificar'}`,
+    unsupported: t('js.upd-unsupported', {}, 'Atualização automática só no app instalado'),
+    idle: t('js.upd-idle', {}, 'Ainda não verificado'),
+    checking: t('js.upd-checking', {}, 'Verificando…'),
+    latest: t('js.upd-latest', {}, 'Você está na versão mais recente'),
+    available: t('js.upd-available', { v }, 'Versão{v} disponível'),
+    downloading: t('js.upd-downloading', { v, pct: st.percent || 0 }, 'Baixando{v}… {pct}%'),
+    downloaded: t('js.upd-downloaded', { v }, 'Versão{v} pronta para instalar'),
+    error: t('js.upd-error', { msg: st.error || t('js.upd-check-failed', {}, 'falha ao verificar') }, 'Erro: {msg}'),
   }[st.state];
-  const action = { available: 'Atualizar', downloaded: 'Reiniciar e instalar' }[st.state] || 'Verificar agora';
+  const action = { available: t('js.update', {}, 'Atualizar'), downloaded: t('js.restart-install', {}, 'Reiniciar e instalar') }[st.state] || t('configuracoes.verificar-agora', {}, 'Verificar agora');
   $('#update-status').textContent = text || '';
   $('#update-action').textContent = action;
   $('#update-action').disabled = ['unsupported', 'checking', 'downloading'].includes(st.state);
@@ -584,10 +607,10 @@ $('#update-action').addEventListener('click', () => {
 });
 // Avisos do updater: nada de diálogo nativo; um banner discreto no rodapé.
 function showUpdateNotice(n) {
-  if (n.kind === 'latest') return toast('Você está na versão mais recente');
-  if (n.kind === 'error') return toast('Não foi possível verificar atualizações');
+  if (n.kind === 'latest') return toast(t('js.upd-latest', {}, 'Você está na versão mais recente'));
+  if (n.kind === 'error') return toast(t('js.upd-notice-error', {}, 'Não foi possível verificar atualizações'));
   if (n.kind !== 'downloaded') return;
-  $('#update-banner-text').textContent = `Versão${n.version ? ' ' + n.version : ''} pronta. Instala em segundos, sem assistente.`;
+  $('#update-banner-text').textContent = t('js.upd-banner', { v: n.version ? ' ' + n.version : '' }, 'Versão{v} pronta. Instala em segundos, sem assistente.');
   $('#update-banner').hidden = false;
 }
 $('#update-banner-restart').addEventListener('click', () => api.installUpdate());
@@ -599,17 +622,17 @@ $('#set-ai-models').addEventListener('click', async (e) => {
   try {
     const models = await api.listModels();
     fillDatalist('#ai-models', models);
-    toast(models.length ? `${models.length} modelos encontrados` : 'Nenhum modelo encontrado');
+    toast(models.length ? t('js.models-found', { n: models.length }, '{n} modelos encontrados') : t('js.no-models', {}, 'Nenhum modelo encontrado'));
     $('[data-setting="aiModel"]').focus();
   } catch (err) {
-    toast(`IA indisponível: ${errMsg(err)}`);
+    toast(t('js.ai-unavailable', { msg: errMsg(err) }, 'IA indisponível: {msg}'));
   } finally {
     btn.disabled = false;
   }
 });
 $('#set-obsidian-pick').addEventListener('click', async () => {
   try {
-    if (await api.pickObsidianVault()) { settings = await api.getSettings(); bindSettings(); toast('Pasta conectada'); }
+    if (await api.pickObsidianVault()) { settings = await api.getSettings(); bindSettings(); toast(t('js.vault-connected', {}, 'Pasta conectada')); }
   } catch (err) { toast(errMsg(err)); }
 });
 $('#set-obsidian-clear').addEventListener('click', () => saveSetting('obsidianVault', ''));
@@ -650,13 +673,13 @@ async function renderInstalled() {
   const ul = $('#plugins-installed');
   ul.replaceChildren();
   if (!list.length) {
-    ul.append(el('li', 'list-empty', 'Nenhum plugin instalado. Use a loja ou copie uma pasta para a pasta de plugins.'));
+    ul.append(el('li', 'list-empty', t('js.no-plugins', {}, 'Nenhum plugin instalado. Use a loja ou copie uma pasta para a pasta de plugins.')));
     return;
   }
   for (const p of list) {
     const m = p.manifest || {};
     let error = p.error;
-    if (!error && p.enabled && !p.loaded && settings.restrictedMode) error = 'Não carregado: modo restrito ligado.';
+    if (!error && p.enabled && !p.loaded && settings.restrictedMode) error = t('js.restricted', {}, 'Não carregado: modo restrito ligado.');
     const { li, main, actions } = pluginCard({
       name: m.name || p.id,
       meta: m.version ? `v${m.version} · ${m.author}` : p.id,
@@ -677,12 +700,12 @@ async function renderInstalled() {
     input.type = 'checkbox';
     input.checked = p.enabled;
     input.disabled = !p.manifest;
-    input.setAttribute('aria-label', `Ativar ${m.name || p.id}`);
+    input.setAttribute('aria-label', t('js.enable-plugin', { name: m.name || p.id }, 'Ativar {name}'));
     input.addEventListener('change', () => (input.checked ? api.enablePlugin(p.id) : api.disablePlugin(p.id)));
     toggle.append(input, el('span'));
-    const remove = el('button', 'btn btn-sm btn-ghost btn-danger', 'Desinstalar');
+    const remove = el('button', 'btn btn-sm btn-ghost btn-danger', t('js.uninstall', {}, 'Desinstalar'));
     remove.addEventListener('click', async () => {
-      if (!confirm(`Desinstalar ${m.name || p.id}? A pasta do plugin será apagada.`)) return;
+      if (!confirm(t('js.uninstall-confirm', { name: m.name || p.id }, 'Desinstalar {name}? A pasta do plugin será apagada.'))) return;
       await api.uninstallPlugin(p.id);
       renderStore();
     });
@@ -694,12 +717,12 @@ async function renderInstalled() {
 let catalog = null; // { plugins, offline }
 
 async function loadCatalog() {
-  $('#store-status').textContent = 'Carregando catálogo…';
+  $('#store-status').textContent = t('js.loading-catalog', {}, 'Carregando catálogo…');
   try {
     catalog = await api.storeCatalog();
     const sel = $('#store-category');
     const cats = [...new Set(catalog.plugins.map((p) => p.category).filter(Boolean))].sort();
-    sel.replaceChildren(new Option('Todas as categorias', ''), ...cats.map((c) => new Option(c, c)));
+    sel.replaceChildren(new Option(t('plugins.todas-as-categorias', {}, 'Todas as categorias'), ''), ...cats.map((c) => new Option(c, c)));
   } catch (err) {
     catalog = { plugins: [], offline: true };
   }
@@ -714,19 +737,19 @@ async function renderStore() {
   const items = catalog.plugins.filter((p) =>
     (!cat || p.category === cat) &&
     (!q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.author.toLowerCase().includes(q)));
-  $('#store-status').textContent = catalog.offline ? 'Sem conexão: mostrando o último catálogo salvo.' : catalog.unavailable ? 'Catálogo indisponível no momento.' : '';
+  $('#store-status').textContent = catalog.offline ? t('js.catalog-offline', {}, 'Sem conexão: mostrando o último catálogo salvo.') : catalog.unavailable ? t('js.catalog-unavailable', {}, 'Catálogo indisponível no momento.') : '';
   const ul = $('#store-list');
   ul.replaceChildren();
   if (!items.length) {
-    ul.append(el('li', 'list-empty', catalog.plugins.length ? 'Nada encontrado.' : 'Catálogo vazio ou indisponível.'));
+    ul.append(el('li', 'list-empty', catalog.plugins.length ? t('js.nothing-found', {}, 'Nada encontrado.') : t('js.catalog-empty', {}, 'Catálogo vazio ou indisponível.')));
     return;
   }
   for (const p of items) {
     const { li, main, actions } = pluginCard({ name: p.name, meta: [p.author, p.category].filter(Boolean).join(' · '), description: p.description });
-    if (p.permissions.length) main.append(el('p', 'mono muted', `Permissões: ${p.permissions.join(', ')}`));
-    const repo = el('button', 'btn btn-sm btn-ghost', 'Repositório ↗');
+    if (p.permissions.length) main.append(el('p', 'mono muted', t('js.permissions', { list: p.permissions.join(', ') }, 'Permissões: {list}')));
+    const repo = el('button', 'btn btn-sm btn-ghost', t('js.repository', {}, 'Repositório ↗'));
     repo.addEventListener('click', () => api.openExternal(`https://github.com/${p.repo}`));
-    const install = el('button', `btn btn-sm ${installed.has(p.id) ? '' : 'btn-primary'}`, installed.has(p.id) ? 'Instalado' : 'Instalar');
+    const install = el('button', `btn btn-sm ${installed.has(p.id) ? '' : 'btn-primary'}`, installed.has(p.id) ? t('js.installed', {}, 'Instalado') : t('js.install', {}, 'Instalar'));
     install.disabled = installed.has(p.id);
     install.addEventListener('click', () => installFromStore(p, install));
     actions.append(repo, install);
@@ -735,14 +758,14 @@ async function renderStore() {
 }
 
 async function installFromStore(p, btn) {
-  const perms = p.permissions.length ? p.permissions.join(', ') : 'nenhuma declarada';
-  if (!confirm(`Instalar "${p.name}" de ${p.repo}?\n\nPermissões: ${perms}\n\nPlugins rodam com o mesmo acesso do aplicativo. Só instale se confiar no autor.`)) return;
-  btn.disabled = true; btn.textContent = 'Instalando…';
+  const perms = p.permissions.length ? p.permissions.join(', ') : t('js.no-perms', {}, 'nenhuma declarada');
+  if (!confirm(t('js.install-confirm', { name: p.name, repo: p.repo, perms }, 'Instalar "{name}" de {repo}?\n\nPermissões: {perms}\n\nPlugins rodam com o mesmo acesso do aplicativo. Só instale se confiar no autor.'))) return;
+  btn.disabled = true; btn.textContent = t('js.installing', {}, 'Instalando…');
   try {
     await api.installPlugin(p.id);
-    toast(`${p.name} instalado. Ative na aba Instalados.`);
+    toast(t('js.installed-toast', { name: p.name }, '{name} instalado. Ative na aba Instalados.'));
   } catch (err) {
-    toast(`Falha ao instalar: ${errMsg(err)}`);
+    toast(t('js.install-failed', { msg: errMsg(err) }, 'Falha ao instalar: {msg}'));
   }
   renderStore();
 }
@@ -752,31 +775,31 @@ $('#store-category').addEventListener('change', renderStore);
 
 async function checkUpdates() {
   const btn = $('#updates-check');
-  btn.disabled = true; btn.textContent = 'Procurando…';
+  btn.disabled = true; btn.textContent = t('js.searching', {}, 'Procurando…');
   const ul = $('#updates-list');
   try {
     const ups = await api.checkPluginUpdates();
     $('#updates-count').textContent = ups.length || '';
     ul.replaceChildren();
-    if (!ups.length) ul.append(el('li', 'list-empty', 'Tudo atualizado.'));
+    if (!ups.length) ul.append(el('li', 'list-empty', t('js.all-updated', {}, 'Tudo atualizado.')));
     for (const u of ups) {
       const { li, actions } = pluginCard({
         name: u.name, meta: `v${u.current} → v${u.latest}`,
-        error: u.compatible ? null : `Requer SpeakToAll ${u.minAppVersion} ou mais novo.`,
+        error: u.compatible ? null : t('js.requires', { v: u.minAppVersion }, 'Requer SpeakToAll {v} ou mais novo.'),
       });
-      const b = el('button', 'btn btn-sm btn-primary', 'Atualizar');
+      const b = el('button', 'btn btn-sm btn-primary', t('js.update', {}, 'Atualizar'));
       b.disabled = !u.compatible;
       b.addEventListener('click', async () => {
-        b.disabled = true; b.textContent = 'Atualizando…';
-        try { await api.updatePlugin(u.id); toast(`${u.name} atualizado`); checkUpdates(); } catch (err) { toast(`Falha: ${errMsg(err)}`); b.disabled = false; b.textContent = 'Atualizar'; }
+        b.disabled = true; b.textContent = t('js.updating', {}, 'Atualizando…');
+        try { await api.updatePlugin(u.id); toast(t('js.updated', { name: u.name }, '{name} atualizado')); checkUpdates(); } catch (err) { toast(t('js.failed', { msg: errMsg(err) }, 'Falha: {msg}')); b.disabled = false; b.textContent = t('js.update', {}, 'Atualizar'); }
       });
       actions.append(b);
       ul.append(li);
     }
   } catch (err) {
-    toast(`Não foi possível procurar: ${errMsg(err)}`);
+    toast(t('js.search-failed', { msg: errMsg(err) }, 'Não foi possível procurar: {msg}'));
   } finally {
-    btn.disabled = false; btn.textContent = 'Procurar atualizações';
+    btn.disabled = false; btn.textContent = t('plugins.procurar-atualizacoes', {}, 'Procurar atualizações');
   }
 }
 $('#updates-check').addEventListener('click', checkUpdates);
@@ -787,7 +810,7 @@ $$('#plugins-tabs button').forEach((b) => b.addEventListener('click', () => { if
 function renderPlugins() { renderInstalled(); renderStore(); }
 
 $('#plugins-folder').addEventListener('click', () => api.openPluginsFolder());
-$('#plugins-reload').addEventListener('click', async () => { await api.reloadPlugins(); toast('Plugins recarregados'); });
+$('#plugins-reload').addEventListener('click', async () => { await api.reloadPlugins(); toast(t('js.plugins-reloaded', {}, 'Plugins recarregados')); });
 
 /* ---------- onboarding ---------- */
 const OB_LAST = 4;
@@ -802,7 +825,7 @@ function goStep(n) {
   $$('.ob-step').forEach((s) => (s.hidden = +s.dataset.step !== n));
   $('#ob-steps').innerHTML = Array.from({ length: OB_LAST + 1 }, (_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('');
   $('#ob-back').style.visibility = n > 0 && n !== 2 ? 'visible' : 'hidden';
-  $('#ob-next').textContent = n === 0 ? 'Começar' : n === OB_LAST ? 'Concluir' : n === 1 ? 'Baixar' : 'Continuar';
+  $('#ob-next').textContent = n === 0 ? t('onboarding.comecar', {}, 'Começar') : n === OB_LAST ? t('js.finish', {}, 'Concluir') : n === 1 ? t('js.download', {}, 'Baixar') : t('js.continue', {}, 'Continuar');
   $('#ob-next').disabled = false;
   if (n === 1) detectHw();
   if (n === 2) runInstall();
@@ -812,7 +835,7 @@ function goStep(n) {
 async function detectHw() {
   const hw = await api.detectHardware();
   $('#ob-hw').innerHTML = '';
-  for (const [k, v] of [['CPU', hw.cpu], ['Memória', `${hw.ramGb} GB`], ['GPU', hw.gpu || 'nenhuma NVIDIA']]) {
+  for (const [k, v] of [['CPU', hw.cpu], [t('js.memory', {}, 'Memória'), `${hw.ramGb} GB`], ['GPU', hw.gpu || t('js.no-nvidia', {}, 'nenhuma NVIDIA')]]) {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = v;
     $('#ob-hw').append(dt, dd);
@@ -820,7 +843,7 @@ async function detectHw() {
   obFlavor = hw.recommendedFlavor;
   $$('#ob-flavor button').forEach((b) => {
     $('.rec', b)?.remove();
-    if (b.dataset.value === hw.recommendedFlavor) b.insertAdjacentHTML('beforeend', '<span class="rec">RECOMENDADO</span>');
+    if (b.dataset.value === hw.recommendedFlavor) b.insertAdjacentHTML('beforeend', `<span class="rec">${t('js.recommended', {}, 'RECOMENDADO')}</span>`);
     b.setAttribute('aria-pressed', b.dataset.value === obFlavor);
   });
 }
@@ -834,7 +857,7 @@ async function runInstall() {
   $('#ob-model').textContent = settings.model;
   ['engine', 'model'].forEach((s) => { $(`#ob-p-${s}`).style.width = '0'; $(`#ob-t-${s}`).textContent = '0%'; });
   const off = api.on('engine:progress', ({ stage, percent, totalMb }) => {
-    if (stage === 'starting') { $('#ob-dl-status').textContent = 'Carregando modelo na memória…'; return; }
+    if (stage === 'starting') { $('#ob-dl-status').textContent = t('js.loading-model', {}, 'Carregando modelo na memória…'); return; }
     $(`#ob-p-${stage}`).style.width = `${percent}%`;
     $(`#ob-t-${stage}`).textContent = `${percent}%`;
     $('#ob-dl-status').textContent = `${stage === 'engine' ? 'whisper.cpp' : settings.model} · ${Math.round((totalMb * percent) / 100)} / ${totalMb} MB`;
@@ -842,10 +865,10 @@ async function runInstall() {
   try {
     await saveSetting('engineFlavor', obFlavor);
     await api.installEngine({ flavor: obFlavor, model: settings.model });
-    $('#ob-dl-status').textContent = 'Pronto.';
+    $('#ob-dl-status').textContent = t('onboarding.pronto', {}, 'Pronto.');
     $('#ob-next').disabled = false;
   } catch (err) {
-    $('#ob-dl-status').textContent = `Erro: ${err.message}`;
+    $('#ob-dl-status').textContent = t('js.upd-error', { msg: errMsg(err) }, 'Erro: {msg}');
     $('#ob-back').style.visibility = 'visible';
   } finally {
     off();
@@ -867,7 +890,7 @@ function stopMicTest() {
   obMic = null;
 }
 $('#ob-mic-btn').addEventListener('click', async () => {
-  try { await startMicTest(); $('#ob-mic-btn').hidden = true; } catch { toast('Permissão de microfone negada'); }
+  try { await startMicTest(); $('#ob-mic-btn').hidden = true; } catch { toast(t('js.mic-denied', {}, 'Permissão de microfone negada')); }
 });
 
 $('#ob-back').addEventListener('click', () => goStep(Math.max(0, obStep - (obStep === 3 ? 2 : 1))));
