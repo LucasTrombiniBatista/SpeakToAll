@@ -2,6 +2,7 @@
 // gerados de assets/tray*.svg por scripts/gerar-icones.js.
 const { Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
+const { t } = require('./i18n');
 
 const ASSETS = path.join(__dirname, '..', '..', 'assets');
 
@@ -16,16 +17,16 @@ let pluginCommands = [];
 
 function buildMenu() {
   const { onOpen, onQuit, onToggleRecording, onPluginCommand, onCheckUpdates } = handlers;
-  const items = [{ label: 'Abrir SpeakToAll', click: () => onOpen && onOpen() }];
-  if (onToggleRecording) items.push({ label: 'Gravar / Parar', click: () => onToggleRecording() });
+  const items = [{ label: t('tray.open'), click: () => onOpen && onOpen() }];
+  if (onToggleRecording) items.push({ label: t('tray.record'), click: () => onToggleRecording() });
   if (pluginCommands.length && onPluginCommand) {
     items.push({
       label: 'Plugins',
       submenu: pluginCommands.map((c) => ({ label: `${c.pluginName}: ${c.name}`, click: () => onPluginCommand(c.pluginId, c.id) })),
     });
   }
-  if (onCheckUpdates) items.push({ type: 'separator' }, { label: 'Verificar atualizações', click: () => onCheckUpdates() });
-  items.push({ type: 'separator' }, { label: 'Sair', click: () => onQuit && onQuit() });
+  if (onCheckUpdates) items.push({ type: 'separator' }, { label: t('tray.check-updates'), click: () => onCheckUpdates() });
+  items.push({ type: 'separator' }, { label: t('tray.quit'), click: () => onQuit && onQuit() });
   tray.setContextMenu(Menu.buildFromTemplate(items));
 }
 
@@ -49,7 +50,7 @@ function setPluginCommands(cmds) {
 function setRecording(on) {
   if (!tray || tray.isDestroyed()) return;
   tray.setImage(on ? icons.recording : icons.idle);
-  tray.setToolTip(on ? 'SpeakToAll — gravando' : 'SpeakToAll');
+  tray.setToolTip(on ? t('tray.recording') : 'SpeakToAll');
 }
 
 function destroyTray() {
@@ -57,4 +58,7 @@ function destroyTray() {
   tray = null;
 }
 
-module.exports = { createTray, setRecording, setPluginCommands, destroyTray };
+// Chamado quando o idioma da interface muda.
+function refresh() { if (tray && !tray.isDestroyed()) buildMenu(); }
+
+module.exports = { createTray, setRecording, setPluginCommands, destroyTray, refresh };

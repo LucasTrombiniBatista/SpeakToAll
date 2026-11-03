@@ -37,7 +37,7 @@
         <span>SpeakToAll</span>
       </div>
 
-      <nav class="nav" aria-label="Navegação">
+      <nav class="nav" aria-label="Navegação" data-i18n-aria="attr.navegacao">
         <button data-view="notes" aria-current="page">
           <svg viewBox="0 0 20 20"><path d="M5 3h7l4 4v10H5z M12 3v4h4 M8 11h5 M8 14h5"/></svg>
           <span data-i18n="nav.notes">Notas</span>
@@ -64,9 +64,9 @@
 
       <div class="sidebar-foot">
         <div class="hint">
-          <span class="muted">Segure</span> <kbd id="hint-hotkey">F9</kbd> <span class="muted">para ditar</span>
+          <span class="muted" data-i18n="app.segure">Segure</span> <kbd id="hint-hotkey">F9</kbd> <span class="muted" data-i18n="app.para-ditar">para ditar</span>
         </div>
-        <button class="engine-status" id="engine-status" title="Status do motor">
+        <button class="engine-status" id="engine-status" title="Status do motor" data-i18n-title="attr.status-do-motor">
           <span class="pill"><span class="dot"></span><span id="engine-label">—</span></span>
         </button>
       </div>
@@ -78,12 +78,12 @@
         <div class="notes-list">
           <header class="list-head">
             <h1 class="display" data-i18n="notes.title">Notas</h1>
-            <input class="input" id="notes-search" type="search" placeholder="Buscar nas notas…" data-i18n-placeholder="notes.search">
+            <input class="input" id="notes-search" type="search" placeholder="Buscar nas notas…" data-i18n-placeholder="attr.buscar-nas-notas" data-i18n-placeholder="notes.search">
             <div class="seg" id="notes-filter" role="group">
-              <button data-source="all" aria-pressed="true">Todas</button>
-              <button data-source="dictation">Ditado</button>
-              <button data-source="import">Importadas</button>
-              <button data-source="meeting">Reuniões</button>
+              <button data-source="all" aria-pressed="true" data-i18n="notas.todas">Todas</button>
+              <button data-source="dictation" data-i18n="notas.ditado">Ditado</button>
+              <button data-source="import" data-i18n="notas.importadas">Importadas</button>
+              <button data-source="meeting" data-i18n="notas.reunioes">Reuniões</button>
             </div>
           </header>
           <ul class="list" id="notes-ul"></ul>
@@ -92,8 +92,8 @@
         <div class="note-detail" id="note-detail">
           <div class="empty" id="note-empty">
             <svg width="56" height="56" class="empty-mark"><use href="#logo-mark"/></svg>
-            <h2 class="display">Fale. Vira texto.</h2>
-            <p class="muted">Segure <kbd class="hk">F9</kbd> em qualquer programa. O texto aparece onde o cursor estiver e fica salvo aqui.</p>
+            <h2 class="display" data-i18n="notas.fale-vira-texto">Fale. Vira texto.</h2>
+            <p class="muted" data-i18n-html="notas.empty-hint">Segure <kbd class="hk">F9</kbd> em qualquer programa. O texto aparece onde o cursor estiver e fica salvo aqui.</p>
           </div>
 
           <article class="note" id="note" hidden>
@@ -104,30 +104,30 @@
                 <span class="mono muted" id="note-duration"></span>
               </div>
               <div class="note-actions">
-                <button class="btn btn-sm" id="note-copy">Copiar</button>
+                <button class="btn btn-sm" id="note-copy" data-i18n="notas.copiar">Copiar</button>
                 <div class="menu-wrap">
-                  <button class="btn btn-sm" id="note-export-btn">Exportar ▾</button>
+                  <button class="btn btn-sm" id="note-export-btn" data-i18n="notas.exportar">Exportar ▾</button>
                   <div class="menu" id="note-export-menu" hidden>
-                    <button data-fmt="txt">Texto <span class="mono muted">.txt</span></button>
+                    <button data-fmt="txt"><span data-i18n="notas.texto">Texto</span> <span class="mono muted">.txt</span></button>
                     <button data-fmt="md">Markdown <span class="mono muted">.md</span></button>
-                    <button data-fmt="srt">Legenda <span class="mono muted">.srt</span></button>
+                    <button data-fmt="srt"><span data-i18n="notas.legenda">Legenda</span> <span class="mono muted">.srt</span></button>
                   </div>
                 </div>
-                <button class="btn btn-sm" id="note-obsidian" title="Enviar ao Obsidian">Obsidian</button>
-                <button class="btn btn-sm btn-primary" id="note-ai">✦ IA</button>
-                <button class="btn btn-sm btn-ghost btn-danger" id="note-delete" title="Excluir">Excluir</button>
+                <button class="btn btn-sm" id="note-obsidian" title="Enviar ao Obsidian" data-i18n-title="attr.enviar-ao-obsidian">Obsidian</button>
+                <button class="btn btn-sm btn-primary" id="note-ai" data-i18n="notas.ia">✦ IA</button>
+                <button class="btn btn-sm btn-ghost btn-danger" id="note-delete" title="Excluir" data-i18n-title="attr.excluir" data-i18n="notas.excluir">Excluir</button>
               </div>
             </header>
-            <input class="note-title display" id="note-title" aria-label="Título">
+            <input class="note-title display" id="note-title" aria-label="Título" data-i18n-aria="attr.titulo">
 
             <div class="summary card" id="note-summary" hidden>
-              <div class="eyebrow">Resumo</div>
+              <div class="eyebrow" data-i18n="notas.resumo">Resumo</div>
               <p id="note-summary-text"></p>
             </div>
 
             <div class="seg" id="note-tabs" role="tablist">
-              <button data-tab="text" aria-pressed="true">Texto</button>
-              <button data-tab="segments">Segmentos</button>
+              <button data-tab="text" aria-pressed="true" data-i18n="notas.texto">Texto</button>
+              <button data-tab="segments" data-i18n="notas.segmentos">Segmentos</button>
             </div>
             <textarea class="note-text" id="note-text" spellcheck="true"></textarea>
             <ol class="segments" id="note-segments" hidden></ol>
@@ -135,15 +135,15 @@
 
           <aside class="ai-panel" id="ai-panel" hidden>
             <header>
-              <strong>Assistente local</strong>
+              <strong data-i18n="notas.assistente-local">Assistente local</strong>
               <span class="mono muted" id="ai-model"></span>
-              <button class="btn btn-sm btn-ghost" id="ai-close" aria-label="Fechar">✕</button>
+              <button class="btn btn-sm btn-ghost" id="ai-close" aria-label="Fechar" data-i18n-aria="attr.fechar">✕</button>
             </header>
-            <button class="btn btn-sm" id="ai-summarize">Gerar resumo e título</button>
+            <button class="btn btn-sm" id="ai-summarize" data-i18n="notas.gerar-resumo-e-titulo">Gerar resumo e título</button>
             <div class="ai-messages" id="ai-messages"></div>
             <form class="ai-form" id="ai-form">
-              <input class="input" id="ai-input" placeholder="Pergunte sobre esta nota…" autocomplete="off">
-              <button class="btn btn-primary" type="submit">Enviar</button>
+              <input class="input" id="ai-input" placeholder="Pergunte sobre esta nota…" data-i18n-placeholder="attr.pergunte-sobre-esta-nota" autocomplete="off">
+              <button class="btn btn-primary" type="submit" data-i18n="notas.enviar">Enviar</button>
             </form>
           </aside>
         </div>
@@ -152,15 +152,15 @@
       <!-- IMPORTAR -->
       <section class="view view-pad" data-view="import" hidden>
         <header class="page-head">
-          <div class="eyebrow">Arquivos</div>
-          <h1 class="display">Importar áudio</h1>
-          <p class="muted">MP3, WAV, M4A, OGG ou vídeo. Tudo é transcrito localmente, um arquivo por vez.</p>
+          <div class="eyebrow" data-i18n="importar.arquivos">Arquivos</div>
+          <h1 class="display" data-i18n="importar.importar-audio">Importar áudio</h1>
+          <p class="muted" data-i18n="importar.mp3-wav-m4a-ogg">MP3, WAV, M4A, OGG ou vídeo. Tudo é transcrito localmente, um arquivo por vez.</p>
         </header>
         <label class="dropzone" id="dropzone">
           <input type="file" id="file-input" accept="audio/*,video/*" multiple hidden>
           <svg width="40" height="40"><use href="#logo-mark"/></svg>
-          <strong>Arraste arquivos aqui</strong>
-          <span class="muted">ou clique para escolher</span>
+          <strong data-i18n="importar.arraste-arquivos-aqui">Arraste arquivos aqui</strong>
+          <span class="muted" data-i18n="importar.ou-clique-para-escolher">ou clique para escolher</span>
         </label>
         <div class="jobs" id="jobs"></div>
       </section>
@@ -168,25 +168,25 @@
       <!-- REUNIÃO -->
       <section class="view view-pad" data-view="meeting" hidden>
         <header class="page-head">
-          <div class="eyebrow">Áudio do sistema</div>
-          <h1 class="display">Reunião</h1>
-          <p class="muted">Grava o som do Teams, Meet ou Zoom (loopback do Windows) e, se quiser, o seu microfone junto.</p>
+          <div class="eyebrow" data-i18n="reuniao.audio-do-sistema">Áudio do sistema</div>
+          <h1 class="display" data-i18n="reuniao.reuniao">Reunião</h1>
+          <p class="muted" data-i18n="reuniao.grava-o-som-do">Grava o som do Teams, Meet ou Zoom (loopback do Windows) e, se quiser, o seu microfone junto.</p>
         </header>
 
         <div class="meeting card" id="meeting">
           <div class="meeting-top">
-            <span class="pill" id="meeting-state"><span class="dot"></span><span>PRONTO</span></span>
-            <span class="mono muted">limite 4 h</span>
+            <span class="pill" id="meeting-state"><span class="dot"></span><span data-i18n="reuniao.pronto">PRONTO</span></span>
+            <span class="mono muted" data-i18n="reuniao.limite-4-h">limite 4 h</span>
           </div>
           <div class="meeting-clock mono" id="meeting-clock">00:00:00</div>
           <canvas class="meeting-wave" id="meeting-wave" height="64"></canvas>
-          <input class="input" id="meeting-title" placeholder="Nome da reunião (opcional)">
+          <input class="input" id="meeting-title" placeholder="Nome da reunião (opcional)" data-i18n-placeholder="attr.nome-da-reuniao-opcional">
           <div class="row">
             <label class="check">
               <span class="toggle"><input type="checkbox" id="meeting-mic" checked><span></span></span>
-              Incluir meu microfone
+              <span data-i18n="reuniao.incluir-microfone">Incluir meu microfone</span>
             </label>
-            <button class="btn btn-lg btn-ink" id="meeting-btn">Iniciar gravação</button>
+            <button class="btn btn-lg btn-ink" id="meeting-btn" data-i18n="reuniao.iniciar-gravacao">Iniciar gravação</button>
           </div>
         </div>
         <div class="jobs" id="meeting-jobs"></div>
@@ -195,35 +195,35 @@
       <!-- PLUGINS -->
       <section class="view view-pad" data-view="plugins" hidden>
         <header class="page-head">
-          <div class="eyebrow">Extensões</div>
+          <div class="eyebrow" data-i18n="plugins.extensoes">Extensões</div>
           <h1 class="display" data-i18n="plugins.title">Plugins</h1>
-          <p class="muted">Plugins rodam com o mesmo acesso do aplicativo. Instale só os que você confia.</p>
+          <p class="muted" data-i18n="plugins.plugins-rodam-com-o">Plugins rodam com o mesmo acesso do aplicativo. Instale só os que você confia.</p>
         </header>
 
         <div class="plugins-bar">
           <div class="seg" id="plugins-tabs" role="tablist">
-            <button data-tab="installed" aria-pressed="true">Instalados</button>
-            <button data-tab="store">Loja</button>
-            <button data-tab="updates">Atualizações <span class="count mono" id="updates-count"></span></button>
+            <button data-tab="installed" aria-pressed="true" data-i18n="plugins.instalados">Instalados</button>
+            <button data-tab="store" data-i18n="plugins.loja">Loja</button>
+            <button data-tab="updates"><span data-i18n="plugins.atualizacoes">Atualizações</span> <span class="count mono" id="updates-count"></span></button>
           </div>
           <label class="check">
             <span class="toggle"><input type="checkbox" data-setting="restrictedMode"><span></span></span>
-            Modo restrito
+            <span data-i18n="plugins.modo-restrito">Modo restrito</span>
           </label>
         </div>
 
         <div class="plugins-panel" data-ptab="installed">
           <div class="row-tight">
-            <button class="btn btn-sm" id="plugins-folder">Abrir pasta de plugins</button>
-            <button class="btn btn-sm btn-ghost" id="plugins-reload">Recarregar</button>
+            <button class="btn btn-sm" id="plugins-folder" data-i18n="plugins.abrir-pasta-de-plugins">Abrir pasta de plugins</button>
+            <button class="btn btn-sm btn-ghost" id="plugins-reload" data-i18n="plugins.recarregar">Recarregar</button>
           </div>
           <ul class="plugin-list" id="plugins-installed"></ul>
         </div>
 
         <div class="plugins-panel" data-ptab="store" hidden>
           <div class="row-tight">
-            <input class="input" id="store-search" type="search" placeholder="Buscar plugins…">
-            <select class="select" id="store-category"><option value="">Todas as categorias</option></select>
+            <input class="input" id="store-search" type="search" placeholder="Buscar plugins…" data-i18n-placeholder="attr.buscar-plugins">
+            <select class="select" id="store-category"><option value="" data-i18n="plugins.todas-as-categorias">Todas as categorias</option></select>
           </div>
           <p class="mono muted" id="store-status"></p>
           <ul class="plugin-list" id="store-list"></ul>
@@ -231,7 +231,7 @@
 
         <div class="plugins-panel" data-ptab="updates" hidden>
           <div class="row-tight">
-            <button class="btn btn-sm" id="updates-check">Procurar atualizações</button>
+            <button class="btn btn-sm" id="updates-check" data-i18n="plugins.procurar-atualizacoes">Procurar atualizações</button>
           </div>
           <ul class="plugin-list" id="updates-list"></ul>
         </div>
@@ -240,114 +240,114 @@
       <!-- CONFIGURAÇÕES -->
       <section class="view view-pad" data-view="settings" hidden>
         <header class="page-head">
-          <div class="eyebrow">Preferências</div>
-          <h1 class="display">Configurações</h1>
+          <div class="eyebrow" data-i18n="configuracoes.preferencias">Preferências</div>
+          <h1 class="display" data-i18n="configuracoes.configuracoes">Configurações</h1>
         </header>
 
         <div class="settings">
           <section class="group">
-            <h2>Ditado</h2>
+            <h2 data-i18n="configuracoes.ditado">Ditado</h2>
             <div class="field">
-              <div><strong>Tecla de atalho</strong><p class="muted">Funciona em qualquer programa.</p></div>
-              <button class="btn hotkey-btn" id="set-hotkey"><kbd id="set-hotkey-label">F9</kbd><span class="muted">Alterar</span></button>
+              <div><strong data-i18n="configuracoes.tecla-de-atalho">Tecla de atalho</strong><p class="muted" data-i18n="configuracoes.funciona-em-qualquer-programa">Funciona em qualquer programa.</p></div>
+              <button class="btn hotkey-btn" id="set-hotkey"><kbd id="set-hotkey-label">F9</kbd><span class="muted" data-i18n="configuracoes.alterar">Alterar</span></button>
             </div>
             <div class="field">
-              <div><strong>Modo</strong><p class="muted">Segurar para falar, ou apertar para começar e de novo para parar.</p></div>
+              <div><strong data-i18n="configuracoes.modo">Modo</strong><p class="muted" data-i18n="configuracoes.segurar-para-falar-ou">Segurar para falar, ou apertar para começar e de novo para parar.</p></div>
               <div class="seg" data-setting="hotkeyMode">
-                <button data-value="hold">Segurar</button>
-                <button data-value="toggle">Alternar</button>
+                <button data-value="hold" data-i18n="configuracoes.segurar">Segurar</button>
+                <button data-value="toggle" data-i18n="configuracoes.alternar">Alternar</button>
               </div>
             </div>
             <div class="field">
-              <div><strong>Toque rápido trava a gravação</strong><p class="muted">Um toque curto grava com as mãos livres. <kbd>Esc</kbd> cancela.</p></div>
+              <div><strong data-i18n="configuracoes.toque-rapido-trava-a">Toque rápido trava a gravação</strong><p class="muted" data-i18n-html="configuracoes.toque-curto-hint">Um toque curto grava com as mãos livres. <kbd>Esc</kbd> cancela.</p></div>
               <span class="toggle"><input type="checkbox" data-setting="tapToLock"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Microfone</strong></div>
-              <select class="select" data-setting="micDevice" id="set-mic"><option value="default">Padrão do sistema</option></select>
+              <div><strong data-i18n="configuracoes.microfone">Microfone</strong></div>
+              <select class="select" data-setting="micDevice" id="set-mic"><option value="default" data-i18n="configuracoes.padrao-do-sistema">Padrão do sistema</option></select>
             </div>
             <div class="field">
-              <div><strong>Como inserir o texto</strong><p class="muted">Colar é mais rápido; digitar funciona onde colar é bloqueado.</p></div>
+              <div><strong data-i18n="configuracoes.como-inserir-o-texto">Como inserir o texto</strong><p class="muted" data-i18n="configuracoes.colar-e-mais-rapido">Colar é mais rápido; digitar funciona onde colar é bloqueado.</p></div>
               <div class="seg" data-setting="injectMode">
-                <button data-value="paste">Colar</button>
-                <button data-value="type">Digitar</button>
+                <button data-value="paste" data-i18n="configuracoes.colar">Colar</button>
+                <button data-value="type" data-i18n="configuracoes.digitar">Digitar</button>
               </div>
             </div>
             <div class="field">
-              <div><strong>Sons de início e fim</strong></div>
+              <div><strong data-i18n="configuracoes.sons-de-inicio-e">Sons de início e fim</strong></div>
               <span class="toggle"><input type="checkbox" data-setting="sounds"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Salvar ditados como notas</strong></div>
+              <div><strong data-i18n="configuracoes.salvar-ditados-como-notas">Salvar ditados como notas</strong></div>
               <span class="toggle"><input type="checkbox" data-setting="saveDictationNotes"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Guardar o áudio</strong></div>
+              <div><strong data-i18n="configuracoes.guardar-o-audio">Guardar o áudio</strong></div>
               <span class="toggle"><input type="checkbox" data-setting="saveAudio"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Pré-visualizar overlay</strong></div>
+              <div><strong data-i18n="configuracoes.pre-visualizar-overlay">Pré-visualizar overlay</strong></div>
               <div class="row-tight">
-                <button class="btn btn-sm" data-preview="recording">Gravando</button>
-                <button class="btn btn-sm" data-preview="transcribing">Transcrevendo</button>
-                <button class="btn btn-sm" data-preview="done">Pronto</button>
+                <button class="btn btn-sm" data-preview="recording" data-i18n="configuracoes.gravando">Gravando</button>
+                <button class="btn btn-sm" data-preview="transcribing" data-i18n="configuracoes.transcrevendo">Transcrevendo</button>
+                <button class="btn btn-sm" data-preview="done" data-i18n="configuracoes.pronto">Pronto</button>
               </div>
             </div>
           </section>
 
           <section class="group">
-            <h2>Reconhecimento</h2>
+            <h2 data-i18n="configuracoes.reconhecimento">Reconhecimento</h2>
             <div class="field">
-              <div><strong>Idioma falado</strong></div>
+              <div><strong data-i18n="configuracoes.idioma-falado">Idioma falado</strong></div>
               <select class="select" data-setting="language">
-                <option value="auto">Detectar automaticamente</option>
-                <option value="pt">Português</option>
-                <option value="en">Inglês</option>
-                <option value="es">Espanhol</option>
-                <option value="zh">Chinês</option>
-                <option value="ja">Japonês</option>
+                <option value="auto" data-i18n="configuracoes.detectar-automaticamente">Detectar automaticamente</option>
+                <option value="pt" data-i18n="configuracoes.portugues">Português</option>
+                <option value="en" data-i18n="configuracoes.ingles">Inglês</option>
+                <option value="es" data-i18n="configuracoes.espanhol">Espanhol</option>
+                <option value="zh" data-i18n="configuracoes.chines">Chinês</option>
+                <option value="ja" data-i18n="configuracoes.japones">Japonês</option>
               </select>
             </div>
             <div class="field">
-              <div><strong>Modelo</strong><p class="muted">Maior = mais preciso e mais lento.</p></div>
+              <div><strong data-i18n="configuracoes.modelo">Modelo</strong><p class="muted" data-i18n="configuracoes.maior-mais-preciso-e">Maior = mais preciso e mais lento.</p></div>
               <select class="select" data-setting="model">
                 <option value="tiny">tiny · 75 MB</option>
                 <option value="base">base · 142 MB</option>
                 <option value="small">small · 466 MB</option>
                 <option value="medium-q5_0">medium-q5_0 · 539 MB</option>
-                <option value="large-v3-turbo-q5_0">large-v3-turbo-q5_0 · 574 MB (recomendado)</option>
+                <option value="large-v3-turbo-q5_0" data-i18n="configuracoes.modelo-recomendado">large-v3-turbo-q5_0 · 574 MB (recomendado)</option>
               </select>
             </div>
             <div class="field">
-              <div><strong>Processamento</strong><p class="muted">CUDA exige placa NVIDIA (download de 439 MB).</p></div>
+              <div><strong data-i18n="configuracoes.processamento">Processamento</strong><p class="muted" data-i18n="configuracoes.cuda-exige-placa-nvidia">CUDA exige placa NVIDIA (download de 439 MB).</p></div>
               <div class="seg" data-setting="engineFlavor">
                 <button data-value="cpu">CPU</button>
                 <button data-value="cuda">NVIDIA CUDA</button>
               </div>
             </div>
             <div class="field">
-              <div><strong>Velocidade</strong><p class="muted">Rápido usa bem menos CPU. Preciso é 3 a 5x mais lento.</p></div>
+              <div><strong data-i18n="configuracoes.velocidade">Velocidade</strong><p class="muted" data-i18n="configuracoes.rapido-usa-bem-menos">Rápido usa bem menos CPU. Preciso é 3 a 5x mais lento.</p></div>
               <div class="seg" data-setting="transcriptionQuality">
-                <button data-value="fast">Rápido</button>
-                <button data-value="accurate">Preciso</button>
+                <button data-value="fast" data-i18n="configuracoes.rapido">Rápido</button>
+                <button data-value="accurate" data-i18n="configuracoes.preciso">Preciso</button>
               </div>
             </div>
             <div class="field field-col">
-              <div><strong>Vocabulário / prompt inicial</strong><p class="muted">O Whisper imita o estilo do prompt — use pontuação.</p></div>
+              <div><strong data-i18n="configuracoes.vocabulario-prompt-inicial">Vocabulário / prompt inicial</strong><p class="muted" data-i18n="configuracoes.o-whisper-imita-o">O Whisper imita o estilo do prompt — use pontuação.</p></div>
               <textarea class="textarea" data-setting="initialPrompt"></textarea>
             </div>
             <div class="field">
-              <div><strong>Motor</strong><p class="muted mono" id="set-engine-info">—</p></div>
-              <button class="btn" id="set-reinstall">Baixar / reinstalar</button>
+              <div><strong data-i18n="configuracoes.motor">Motor</strong><p class="muted mono" id="set-engine-info">—</p></div>
+              <button class="btn" id="set-reinstall" data-i18n="configuracoes.baixar-reinstalar">Baixar / reinstalar</button>
             </div>
           </section>
 
           <section class="group">
-            <h2>IA <span class="pill cobalt">opcional</span></h2>
+            <h2><span data-i18n="configuracoes.ia">IA</span> <span class="pill cobalt" data-i18n="configuracoes.opcional">opcional</span></h2>
             <div class="field">
-              <div><strong>Provedor</strong><p class="muted">Preenche o endpoint. Local não envia nada para a internet.</p></div>
+              <div><strong data-i18n="configuracoes.provedor">Provedor</strong><p class="muted" data-i18n="configuracoes.preenche-o-endpoint-local">Preenche o endpoint. Local não envia nada para a internet.</p></div>
               <select class="select" id="set-ai-preset">
-                <option value="">Personalizado</option>
+                <option value="" data-i18n="configuracoes.personalizado">Personalizado</option>
                 <option value="http://localhost:11434/v1">Ollama (local)</option>
                 <option value="http://localhost:1234/v1">LM Studio (local)</option>
                 <option value="https://api.openai.com/v1">OpenAI</option>
@@ -356,95 +356,95 @@
               </select>
             </div>
             <div class="field">
-              <div><strong>Endpoint</strong><p class="muted">Qualquer API compatível com OpenAI.</p></div>
+              <div><strong>Endpoint</strong><p class="muted" data-i18n="configuracoes.qualquer-api-compativel-com">Qualquer API compatível com OpenAI.</p></div>
               <input class="input mono" data-setting="aiBaseUrl">
             </div>
             <div class="field">
-              <div><strong>Chave da API</strong><p class="muted">Só para provedores na nuvem. Fica salva neste computador.</p></div>
+              <div><strong data-i18n="configuracoes.chave-da-api">Chave da API</strong><p class="muted" data-i18n="configuracoes.so-para-provedores-na">Só para provedores na nuvem. Fica salva neste computador.</p></div>
               <input class="input mono" type="password" data-setting="aiApiKey" autocomplete="off" placeholder="sk-…">
             </div>
             <div class="field">
-              <div><strong>Modelo</strong></div>
+              <div><strong data-i18n="configuracoes.modelo">Modelo</strong></div>
               <div class="row-tight">
                 <input class="input mono" data-setting="aiModel" list="ai-models">
                 <datalist id="ai-models"></datalist>
-                <button class="btn btn-sm" id="set-ai-models">Listar modelos</button>
+                <button class="btn btn-sm" id="set-ai-models" data-i18n="configuracoes.listar-modelos">Listar modelos</button>
               </div>
             </div>
           </section>
 
           <section class="group">
-            <h2>Integrações</h2>
+            <h2 data-i18n="configuracoes.integracoes">Integrações</h2>
             <div class="field">
               <div>
-                <strong>Pasta do Obsidian (vault)</strong>
-                <p class="muted">Qualquer pasta serve. Recomendamos um vault do Obsidian (com <span class="mono">.obsidian/</span>) para a melhor experiência.</p>
-                <p class="muted mono" id="set-obsidian-vault">Nenhuma pasta escolhida</p>
-                <p class="muted obs-warn" id="set-obsidian-warn" hidden>Esta pasta não é um vault do Obsidian. Os arquivos .md serão salvos normalmente.</p>
+                <strong data-i18n="configuracoes.pasta-do-obsidian-vault">Pasta do Obsidian (vault)</strong>
+                <p class="muted" data-i18n-html="configuracoes.obsidian-hint">Qualquer pasta serve. Recomendamos um vault do Obsidian (com <span class="mono">.obsidian/</span>) para a melhor experiência.</p>
+                <p class="muted mono" id="set-obsidian-vault" data-i18n="configuracoes.nenhuma-pasta-escolhida">Nenhuma pasta escolhida</p>
+                <p class="muted obs-warn" id="set-obsidian-warn" hidden data-i18n="configuracoes.esta-pasta-nao-e">Esta pasta não é um vault do Obsidian. Os arquivos .md serão salvos normalmente.</p>
               </div>
               <div class="row-tight">
-                <button class="btn btn-sm btn-ghost" id="set-obsidian-clear" hidden>Remover</button>
-                <button class="btn" id="set-obsidian-pick">Escolher pasta</button>
+                <button class="btn btn-sm btn-ghost" id="set-obsidian-clear" hidden data-i18n="configuracoes.remover">Remover</button>
+                <button class="btn" id="set-obsidian-pick" data-i18n="configuracoes.escolher-pasta">Escolher pasta</button>
               </div>
             </div>
             <div class="field">
-              <div><strong>Pasta padrão</strong><p class="muted">Usada quando a IA não sugere outra. Vazio = raiz do vault.</p></div>
+              <div><strong data-i18n="configuracoes.pasta-padrao">Pasta padrão</strong><p class="muted" data-i18n="configuracoes.usada-quando-a-ia">Usada quando a IA não sugere outra. Vazio = raiz do vault.</p></div>
               <input class="input mono" data-setting="obsidianFolder" placeholder="SpeakToAll">
             </div>
             <div class="field field-col">
-              <div><strong>Categorias prévias</strong><p class="muted">Uma por linha. A IA dá preferência a elas ao escolher pasta e tags.</p></div>
-              <textarea class="textarea" data-setting="obsidianCategories" placeholder="Trabalho/Reuniões&#10;Ideias&#10;Pessoal"></textarea>
+              <div><strong data-i18n="configuracoes.categorias-previas">Categorias prévias</strong><p class="muted" data-i18n="configuracoes.uma-por-linha-a">Uma por linha. A IA dá preferência a elas ao escolher pasta e tags.</p></div>
+              <textarea class="textarea" data-setting="obsidianCategories" placeholder="Trabalho/Reuniões&#10;Ideias&#10;Pessoal" data-i18n-placeholder="attr.trabalho-reunioes-10-ideias"></textarea>
             </div>
             <div class="field">
-              <div><strong>Detectar categorias novas</strong><p class="muted">Desligado, a IA usa só as categorias prévias.</p></div>
+              <div><strong data-i18n="configuracoes.detectar-categorias-novas">Detectar categorias novas</strong><p class="muted" data-i18n="configuracoes.desligado-a-ia-usa">Desligado, a IA usa só as categorias prévias.</p></div>
               <span class="toggle"><input type="checkbox" data-setting="obsidianAutoDetect"><span></span></span>
             </div>
           </section>
 
           <section class="group">
-            <h2>Aplicativo</h2>
+            <h2 data-i18n="configuracoes.aplicativo">Aplicativo</h2>
             <div class="field">
-              <div><strong>Tema</strong></div>
+              <div><strong data-i18n="configuracoes.tema">Tema</strong></div>
               <div class="seg" data-setting="theme">
-                <button data-value="system">Sistema</button>
-                <button data-value="light">Claro</button>
-                <button data-value="dark">Escuro</button>
+                <button data-value="system" data-i18n="configuracoes.sistema">Sistema</button>
+                <button data-value="light" data-i18n="configuracoes.claro">Claro</button>
+                <button data-value="dark" data-i18n="configuracoes.escuro">Escuro</button>
               </div>
             </div>
             <div class="field">
-              <div><strong>Janela</strong><p class="muted">F11 alterna tela cheia a qualquer momento.</p></div>
+              <div><strong data-i18n="configuracoes.janela">Janela</strong><p class="muted" data-i18n="configuracoes.f11-alterna-tela-cheia">F11 alterna tela cheia a qualquer momento.</p></div>
               <div class="seg" data-setting="windowMode">
-                <button data-value="windowed">Janela</button>
-                <button data-value="maximized">Maximizada</button>
-                <button data-value="fullscreen">Tela cheia</button>
+                <button data-value="windowed" data-i18n="configuracoes.janela">Janela</button>
+                <button data-value="maximized" data-i18n="configuracoes.maximizada">Maximizada</button>
+                <button data-value="fullscreen" data-i18n="configuracoes.tela-cheia">Tela cheia</button>
               </div>
             </div>
             <div class="field">
-              <div><strong>Idioma da interface</strong></div>
+              <div><strong data-i18n="configuracoes.idioma-da-interface">Idioma da interface</strong></div>
               <select class="select" data-setting="uiLanguage">
                 <option value="pt-BR">Português (Brasil)</option>
                 <option value="en">English</option>
               </select>
             </div>
             <div class="field">
-              <div><strong>Iniciar com o Windows</strong></div>
+              <div><strong data-i18n="configuracoes.iniciar-com-o-windows">Iniciar com o Windows</strong></div>
               <span class="toggle"><input type="checkbox" data-setting="startWithWindows"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Fechar para a bandeja</strong></div>
+              <div><strong data-i18n="configuracoes.fechar-para-a-bandeja">Fechar para a bandeja</strong></div>
               <span class="toggle"><input type="checkbox" data-setting="closeToTray"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Verificar atualizações automaticamente</strong><p class="muted">Avisa quando sair uma versão nova no GitHub. Nada é baixado sem você aceitar.</p></div>
+              <div><strong data-i18n="configuracoes.verificar-atualizacoes-automaticamente">Verificar atualizações automaticamente</strong><p class="muted" data-i18n="configuracoes.avisa-quando-sair-uma">Avisa quando sair uma versão nova no GitHub. Nada é baixado sem você aceitar.</p></div>
               <span class="toggle"><input type="checkbox" data-setting="autoCheckUpdates"><span></span></span>
             </div>
             <div class="field">
-              <div><strong>Versão</strong><p class="muted" id="update-status">—</p></div>
-              <button class="btn" id="update-action">Verificar agora</button>
+              <div><strong data-i18n="configuracoes.versao">Versão</strong><p class="muted" id="update-status">—</p></div>
+              <button class="btn" id="update-action" data-i18n="configuracoes.verificar-agora">Verificar agora</button>
             </div>
             <div class="field">
-              <div><strong>Assistente de configuração</strong></div>
-              <button class="btn" id="set-onboarding">Abrir de novo</button>
+              <div><strong data-i18n="configuracoes.assistente-de-configuracao">Assistente de configuração</strong></div>
+              <button class="btn" id="set-onboarding" data-i18n="configuracoes.abrir-de-novo">Abrir de novo</button>
             </div>
           </section>
         </div>
@@ -459,44 +459,44 @@
 
       <div class="ob-step" data-step="0">
         <svg width="64" height="64"><use href="#logo-mark"/></svg>
-        <h1 class="display ob-hero">Fale. Vira texto.<br>Em qualquer lugar.</h1>
-        <p class="muted">O SpeakToAll transcreve sua voz no seu computador, sem internet, e digita o resultado em qualquer programa.</p>
+        <h1 class="display ob-hero" data-i18n-html="onboarding.hero">Fale. Vira texto.<br>Em qualquer lugar.</h1>
+        <p class="muted" data-i18n="onboarding.o-speaktoall-transcreve-sua">O SpeakToAll transcreve sua voz no seu computador, sem internet, e digita o resultado em qualquer programa.</p>
       </div>
 
       <div class="ob-step" data-step="1" hidden>
-        <h2 class="display">Seu hardware</h2>
-        <dl class="hw" id="ob-hw"><dt>Detectando…</dt></dl>
+        <h2 class="display" data-i18n="onboarding.seu-hardware">Seu hardware</h2>
+        <dl class="hw" id="ob-hw"><dt data-i18n="onboarding.detectando">Detectando…</dt></dl>
         <div class="choice" id="ob-flavor">
-          <button data-value="cpu"><strong>CPU</strong><span class="muted">16 MB · funciona em qualquer PC</span></button>
-          <button data-value="cuda"><strong>NVIDIA CUDA</strong><span class="muted">439 MB · bem mais rápido</span></button>
+          <button data-value="cpu"><strong>CPU</strong><span class="muted" data-i18n="onboarding.16-mb-funciona-em">16 MB · funciona em qualquer PC</span></button>
+          <button data-value="cuda"><strong>NVIDIA CUDA</strong><span class="muted" data-i18n="onboarding.439-mb-bem-mais">439 MB · bem mais rápido</span></button>
         </div>
       </div>
 
       <div class="ob-step" data-step="2" hidden>
-        <h2 class="display">Baixando o motor</h2>
-        <p class="muted">whisper.cpp + modelo <span class="mono" id="ob-model"></span>. Só acontece uma vez.</p>
-        <div class="dl"><span>Motor</span><div class="progress"><i id="ob-p-engine"></i></div><span class="mono muted" id="ob-t-engine">0%</span></div>
-        <div class="dl"><span>Modelo</span><div class="progress"><i id="ob-p-model"></i></div><span class="mono muted" id="ob-t-model">0%</span></div>
-        <p class="mono muted" id="ob-dl-status">Aguardando…</p>
+        <h2 class="display" data-i18n="onboarding.baixando-o-motor">Baixando o motor</h2>
+        <p class="muted"><span data-i18n="onboarding.modelo-prefixo">whisper.cpp + modelo</span> <span class="mono" id="ob-model"></span>. <span data-i18n="onboarding.so-uma-vez">Só acontece uma vez.</span></p>
+        <div class="dl"><span data-i18n="onboarding.motor">Motor</span><div class="progress"><i id="ob-p-engine"></i></div><span class="mono muted" id="ob-t-engine">0%</span></div>
+        <div class="dl"><span data-i18n="onboarding.modelo">Modelo</span><div class="progress"><i id="ob-p-model"></i></div><span class="mono muted" id="ob-t-model">0%</span></div>
+        <p class="mono muted" id="ob-dl-status" data-i18n="onboarding.aguardando">Aguardando…</p>
       </div>
 
       <div class="ob-step" data-step="3" hidden>
-        <h2 class="display">Teste o microfone</h2>
-        <p class="muted">Fale algo. As barras devem se mexer.</p>
+        <h2 class="display" data-i18n="onboarding.teste-o-microfone">Teste o microfone</h2>
+        <p class="muted" data-i18n="onboarding.fale-algo-as-barras">Fale algo. As barras devem se mexer.</p>
         <canvas class="mic-test" id="ob-mic" height="56"></canvas>
-        <button class="btn" id="ob-mic-btn">Ativar microfone</button>
+        <button class="btn" id="ob-mic-btn" data-i18n="onboarding.ativar-microfone">Ativar microfone</button>
       </div>
 
       <div class="ob-step" data-step="4" hidden>
-        <h2 class="display">Pronto.</h2>
-        <p class="muted">Clique em qualquer campo de texto, segure a tecla e fale. Solte para inserir.</p>
+        <h2 class="display" data-i18n="onboarding.pronto">Pronto.</h2>
+        <p class="muted" data-i18n="onboarding.clique-em-qualquer-campo">Clique em qualquer campo de texto, segure a tecla e fale. Solte para inserir.</p>
         <div class="big-key"><kbd class="hk">F9</kbd></div>
-        <p class="muted">Toque rápido = grava com as mãos livres · <kbd>Esc</kbd> cancela</p>
+        <p class="muted" data-i18n-html="onboarding.mic-hint">Toque rápido = grava com as mãos livres · <kbd>Esc</kbd> cancela</p>
       </div>
 
       <footer class="modal-foot">
-        <button class="btn btn-ghost" id="ob-back">Voltar</button>
-        <button class="btn btn-primary" id="ob-next">Começar</button>
+        <button class="btn btn-ghost" id="ob-back" data-i18n="onboarding.voltar">Voltar</button>
+        <button class="btn btn-primary" id="ob-next" data-i18n="onboarding.comecar">Começar</button>
       </footer>
     </div>
   </div>
@@ -505,32 +505,32 @@
   <div class="modal" id="obsidian" hidden>
     <form class="modal-card obs-card" id="obs-form">
       <header class="obs-head">
-        <div class="eyebrow">Enviar ao Obsidian</div>
-        <h2 class="display">Revise antes de salvar</h2>
+        <div class="eyebrow" data-i18n="enviar.enviar-ao-obsidian">Enviar ao Obsidian</div>
+        <h2 class="display" data-i18n="enviar.revise-antes-de-salvar">Revise antes de salvar</h2>
         <p class="muted" id="obs-status"></p>
       </header>
-      <label class="obs-field"><strong>Título</strong><input class="input" id="obs-title" required></label>
-      <label class="obs-field"><strong>Pasta</strong>
-        <input class="input mono" id="obs-folder" list="obs-folders" placeholder="raiz do vault">
+      <label class="obs-field"><strong data-i18n="enviar.titulo">Título</strong><input class="input" id="obs-title" required></label>
+      <label class="obs-field"><strong data-i18n="enviar.pasta">Pasta</strong>
+        <input class="input mono" id="obs-folder" list="obs-folders" placeholder="raiz do vault" data-i18n-placeholder="attr.raiz-do-vault">
         <datalist id="obs-folders"></datalist>
       </label>
       <div class="obs-field"><strong>Tags</strong>
         <div class="chips" id="obs-tags"></div>
-        <input class="input" id="obs-tag-input" list="obs-known-tags" placeholder="Adicionar tag e Enter">
+        <input class="input" id="obs-tag-input" list="obs-known-tags" placeholder="Adicionar tag e Enter" data-i18n-placeholder="attr.adicionar-tag-e-enter">
         <datalist id="obs-known-tags"></datalist>
       </div>
-      <label class="obs-field"><strong>Conteúdo</strong><textarea class="textarea obs-body" id="obs-body"></textarea></label>
+      <label class="obs-field"><strong data-i18n="enviar.conteudo">Conteúdo</strong><textarea class="textarea obs-body" id="obs-body"></textarea></label>
       <footer class="modal-foot">
-        <button class="btn btn-ghost" type="button" id="obs-cancel">Cancelar</button>
-        <button class="btn btn-primary" type="submit" id="obs-save">Salvar no vault</button>
+        <button class="btn btn-ghost" type="button" id="obs-cancel" data-i18n="enviar.cancelar">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="obs-save" data-i18n="enviar.salvar-no-vault">Salvar no vault</button>
       </footer>
     </form>
   </div>
 
   <div class="update-banner" id="update-banner" role="status" hidden>
     <span id="update-banner-text"></span>
-    <button class="btn btn-primary" id="update-banner-restart">Reiniciar agora</button>
-    <button class="btn btn-ghost" id="update-banner-later">Depois</button>
+    <button class="btn btn-primary" id="update-banner-restart" data-i18n="enviar.reiniciar-agora">Reiniciar agora</button>
+    <button class="btn btn-ghost" id="update-banner-later" data-i18n="enviar.depois">Depois</button>
   </div>
 
   <div class="toast" id="toast" role="status" hidden></div>
