@@ -86,7 +86,6 @@ Para testar a interface no Electron enquanto outra instância do app está abert
 - Caminho **CUDA** não testado (sem GPU NVIDIA na máquina de desenvolvimento).
 - Cancelamento de download no meio não testado.
 - **Empacotamento**: falta a seção `build` do `electron-builder` (NSIS + portable, `npmRebuild: false`) com `asarUnpack` para `node_modules/uiohook-napi/**` e `src/main/injector.ps1`.
-- Traduções: os textos da interface estão em português direto no HTML; `locales/*.json` cobrem só a navegação.
 - Integrações: só Obsidian por enquanto; Notion e outros estão planejados (ver [integracoes.md](integracoes.md)).
 - Binários do whisper.cpp não são assinados — o SmartScreen pode pedir "Executar assim mesmo".
 
