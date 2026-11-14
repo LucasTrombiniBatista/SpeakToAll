@@ -171,7 +171,8 @@
         if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
         window.removeEventListener('keydown', onKey, true);
         const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift'].filter(Boolean);
-        resolve([...mods, e.key.length === 1 ? e.key.toUpperCase() : e.key].join('+'));
+        const label = [...mods, e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key.toUpperCase() : e.key].join('+');
+        this.setSettings({ hotkey: label }).then(() => resolve({ label }));
       };
       window.addEventListener('keydown', onKey, true);
     }); },

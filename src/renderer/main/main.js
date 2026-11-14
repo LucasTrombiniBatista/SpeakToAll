@@ -560,12 +560,15 @@ $('#set-hotkey').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   btn.classList.add('capturing');
   $('#set-hotkey-label').textContent = '…';
-  btn.lastChild.textContent = t('js.press-key', {}, 'Pressione a tecla');
-  const key = await api.captureHotkey();
+  btn.lastChild.textContent = t('js.press-key', {}, 'Pressione até 3 teclas');
+  const res = await api.captureHotkey();
   btn.classList.remove('capturing');
   btn.lastChild.textContent = t('configuracoes.alterar', {}, 'Alterar');
-  if (key) await saveSetting('hotkey', key);
-  else renderHotkey();
+  // O main já salvou a combinação; aqui só atualiza a tela e avisa sobre teclas que digitam.
+  if (res?.label && !res.error) settings = await api.getSettings();
+  renderHotkey();
+  if (res?.error === 'typing') toast(t('js.hotkey-typing-alone', { key: res.label }, '{key} sozinha digitaria no app. Combine com Ctrl, Alt ou Shift.'));
+  else if (res?.typing) toast(t('js.hotkey-typing', {}, 'Atenção: as teclas do atalho também são digitadas no app em foco.'));
 });
 $$('[data-preview]').forEach((b) => b.addEventListener('click', () => api.previewOverlay(b.dataset.preview)));
 $('#set-reinstall').addEventListener('click', () => openOnboarding(1));

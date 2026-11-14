@@ -33,38 +33,69 @@ function keycodeToLabel(keycode) {
   return KEY_LABELS[keycode] || `Key${keycode}`;
 }
 
-function comboLabel(keycode, modifiers = {}) {
-  const own = MODIFIER_KEYS[keycode];
-  const parts = [];
-  if (modifiers.ctrl && own !== 'ctrl') parts.push('Ctrl');
-  if (modifiers.alt && own !== 'alt') parts.push('Alt');
-  if (modifiers.shift && own !== 'shift') parts.push('Shift');
-  if (modifiers.meta && own !== 'meta') parts.push('Win');
-  parts.push(keycodeToLabel(keycode));
-  return parts.join('+');
+// Lado direito conta como a mesma tecla do esquerdo (Ctrl, Alt, Shift, Win).
+const SIDE = {
+  [UiohookKey.CtrlRight]: UiohookKey.Ctrl, [UiohookKey.AltRight]: UiohookKey.Alt,
+  [UiohookKey.ShiftRight]: UiohookKey.Shift, [UiohookKey.MetaRight]: UiohookKey.Meta,
+};
+const norm = (code) => SIDE[code] ?? code;
+const MOD_ORDER = [UiohookKey.Ctrl, UiohookKey.Alt, UiohookKey.Shift, UiohookKey.Meta];
+const MAX_KEYS = 3;
+
+// Teclas que também digitam algo no app em foco (o hook é passivo e não as bloqueia).
+function isTyping(code) {
+  return code === UiohookKey.Space || keycodeToLabel(code).length === 1;
 }
 
+function keysFromLegacy(keycode, modifiers = {}) {
+  const own = MODIFIER_KEYS[keycode];
+  const keys = [];
+  for (const [m, code] of [['ctrl', UiohookKey.Ctrl], ['alt', UiohookKey.Alt], ['shift', UiohookKey.Shift], ['meta', UiohookKey.Meta]]) {
+    if (modifiers[m] && own !== m) keys.push(code);
+  }
+  keys.push(keycode);
+  return keys;
+}
+
+// Modificadores primeiro (Ctrl, Alt, Shift, Win), depois as demais na ordem em que foram apertadas.
+function sortKeys(keys) {
+  const mods = MOD_ORDER.filter((m) => keys.some((k) => norm(k) === m));
+  const rest = keys.filter((k) => !MOD_ORDER.includes(norm(k)));
+  return [...mods, ...rest];
+}
+
+function keysLabel(keys) {
+  if (keys.length === 1) return keycodeToLabel(keys[0]);
+  return sortKeys(keys).map((k) => keycodeToLabel(norm(k))).join('+');
+}
+
+// Compatível com o formato antigo (uma tecla + modificadores).
+function comboLabel(keycode, modifiers = {}) {
+  return keysLabel(keysFromLegacy(keycode, modifiers));
+}
+
+// Atalho de 1 a 3 teclas. Dispara quando todas estão apertadas (e nenhuma outra);
+// no modo segurar, soltar qualquer uma delas encerra.
 class Hotkeys extends EventEmitter {
   constructor() {
     super();
-    this.keycode = DEFAULT_KEYCODE;
-    this.modifiers = { ctrl: false, alt: false, shift: false, meta: false };
+    this.keys = [DEFAULT_KEYCODE];
     this.mode = 'hold';
     this.tapToLock = true;
     this.enabled = true;
     this.state = 'idle';
     this.started = false;
-    this.keyDown = false;     // tecla da hotkey fisicamente pressionada (filtra auto-repeat)
+    this.pressed = new Set(); // teclas físicas pressionadas agora (filtra auto-repeat)
     this.pressedAt = 0;
     this.lockedAt = 0;
-    this._capture = null;     // { resolve, pendingModifier }
+    this._capture = null;     // { resolve, held, best }
     this._onDown = (e) => this._handleDown(e);
     this._onUp = (e) => this._handleUp(e);
   }
 
-  configure({ keycode, modifiers, mode, tapToLock } = {}) {
-    if (Number.isInteger(keycode)) this.keycode = keycode;
-    if (modifiers) this.modifiers = { ctrl: !!modifiers.ctrl, alt: !!modifiers.alt, shift: !!modifiers.shift, meta: !!modifiers.meta };
+  configure({ keys, keycode, modifiers, mode, tapToLock } = {}) {
+    if (Array.isArray(keys) && keys.length && keys.every(Number.isInteger)) this.keys = [...new Set(keys.map(norm))].slice(0, MAX_KEYS);
+    else if (Number.isInteger(keycode)) this.keys = keysFromLegacy(keycode, modifiers).map(norm);
     if (mode === 'hold' || mode === 'toggle') this.mode = mode;
     if (typeof tapToLock === 'boolean') this.tapToLock = tapToLock;
     this._abort();
@@ -103,29 +134,31 @@ class Hotkeys extends EventEmitter {
     if (this.state !== 'idle') { this.reset(); this.emit('cancel'); }
   }
 
-  getLabel() { return comboLabel(this.keycode, this.modifiers); }
+  getLabel() { return keysLabel(this.keys); }
 
-  _modsMatch(e) {
-    const own = MODIFIER_KEYS[this.keycode];
-    for (const m of ['ctrl', 'alt', 'shift', 'meta']) {
-      if (m === own) continue;
-      if (!!e[m + 'Key'] !== this.modifiers[m]) return false;
-    }
-    return true;
+  // Keyups perdidos (ex.: Win+L bloqueia a tela) deixariam teclas "presas"; as flags de
+  // modificador do próprio evento corrigem isso.
+  _prune(e) {
+    const flags = { [UiohookKey.Ctrl]: e.ctrlKey, [UiohookKey.Alt]: e.altKey, [UiohookKey.Shift]: e.shiftKey, [UiohookKey.Meta]: e.metaKey };
+    for (const [code, on] of Object.entries(flags)) if (on === false) this.pressed.delete(Number(code));
+  }
+
+  _chordDown() {
+    return this.pressed.size === this.keys.length && this.keys.every((k) => this.pressed.has(k));
   }
 
   _handleDown(e) {
-    if (this._capture) return this._captureDown(e);
+    const k = norm(e.keycode);
+    if (this._capture) return this._captureDown(k);
+    if (this.pressed.has(k)) return; // auto-repeat
+    this._prune(e);
+    this.pressed.add(k);
     if (!this.enabled) return;
-
-    if (e.keycode === UiohookKey.Escape) {
+    if (k === UiohookKey.Escape) {
       if (this.state !== 'idle') { this.reset(); this.emit('cancel'); }
       return;
     }
-    if (e.keycode !== this.keycode) return;
-    if (this.keyDown) return; // auto-repeat
-    this.keyDown = true;
-    if (!this._modsMatch(e) && this.state === 'idle') return;
+    if (!this.keys.includes(k) || !this._chordDown()) return;
 
     const now = Date.now();
     if (this.state === 'idle') {
@@ -143,9 +176,10 @@ class Hotkeys extends EventEmitter {
   }
 
   _handleUp(e) {
-    if (this._capture) return this._captureUp(e);
-    if (e.keycode !== this.keycode) return;
-    this.keyDown = false;
+    const k = norm(e.keycode);
+    this.pressed.delete(k);
+    if (this._capture) return this._captureUp(k);
+    if (!this.keys.includes(k)) return;
     if (!this.enabled || this.mode !== 'hold' || this.state !== 'held') return;
     const dur = Date.now() - this.pressedAt;
     if (this.tapToLock && dur < TAP_MS) {
@@ -158,39 +192,39 @@ class Hotkeys extends EventEmitter {
     }
   }
 
-  // Captura a próxima tecla (para a tela de configurações). Esc → null.
+  // Captura a próxima combinação (para a tela de configurações): junta até 3 teclas e termina
+  // quando todas são soltas. Esc → null. Uma tecla que digita texto sozinha → { error: 'typing' }.
   captureNext() {
     if (this._capture) this._capture.resolve(null);
     if (!this.started) this.start();
     return new Promise((resolve) => {
-      this._capture = { resolve, pendingModifier: null };
+      this._capture = { resolve, held: [], best: [] };
     });
   }
 
   _finishCapture(result) {
     const c = this._capture;
     this._capture = null;
-    this.keyDown = false;
+    this.pressed.clear();
     this._abort();
     c.resolve(result);
   }
 
-  _captureDown(e) {
-    if (e.keycode === UiohookKey.Escape) return this._finishCapture(null);
-    if (MODIFIER_KEYS[e.keycode]) {
-      if (!this._capture.pendingModifier) this._capture.pendingModifier = e.keycode;
-      return;
-    }
-    const modifiers = { ctrl: !!e.ctrlKey, alt: !!e.altKey, shift: !!e.shiftKey, meta: !!e.metaKey };
-    this._finishCapture({ label: comboLabel(e.keycode, modifiers), keycode: e.keycode, modifiers });
+  _captureDown(k) {
+    if (k === UiohookKey.Escape) return this._finishCapture(null);
+    const c = this._capture;
+    if (c.held.includes(k) || c.held.length >= MAX_KEYS) return;
+    c.held.push(k);
+    if (c.held.length > c.best.length) c.best = [...c.held];
   }
 
-  _captureUp(e) {
-    // Modificador pressionado e solto sozinho → usa ele como a própria tecla.
-    if (MODIFIER_KEYS[e.keycode] && this._capture.pendingModifier === e.keycode) {
-      const modifiers = { ctrl: false, alt: false, shift: false, meta: false };
-      this._finishCapture({ label: keycodeToLabel(e.keycode), keycode: e.keycode, modifiers });
-    }
+  _captureUp(k) {
+    const c = this._capture;
+    c.held = c.held.filter((x) => x !== k);
+    if (c.held.length || !c.best.length) return;
+    const keys = sortKeys(c.best);
+    if (keys.length === 1 && isTyping(keys[0])) return this._finishCapture({ error: 'typing', label: keysLabel(keys) });
+    this._finishCapture({ label: keysLabel(keys), keys, typing: keys.some(isTyping) });
   }
 }
 
@@ -198,5 +232,8 @@ const hotkeys = new Hotkeys();
 module.exports = hotkeys;
 module.exports.keycodeToLabel = keycodeToLabel;
 module.exports.comboLabel = comboLabel;
+module.exports.keysLabel = keysLabel;
+module.exports.keysFromLegacy = keysFromLegacy;
+module.exports.isTyping = isTyping;
 module.exports.KEY_LABELS = KEY_LABELS;
 module.exports.DEFAULT_KEYCODE = DEFAULT_KEYCODE;

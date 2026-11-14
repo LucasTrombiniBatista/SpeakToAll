@@ -24,7 +24,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 app.setAppUserModelId('com.lucastrombini.speaktoall');
 
 const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality'];
-const HOTKEY_KEYS = ['hotkeyCode', 'hotkeyModifiers', 'hotkeyMode', 'tapToLock'];
+const HOTKEY_KEYS = ['hotkeyKeys', 'hotkeyMode', 'tapToLock'];
 let chatAbort = null;
 let installing = false;
 
@@ -34,7 +34,7 @@ function dirs() {
 }
 
 function configureHotkeys(s) {
-  hotkeys.configure({ keycode: s.hotkeyCode, modifiers: s.hotkeyModifiers, mode: s.hotkeyMode, tapToLock: s.tapToLock });
+  hotkeys.configure({ keys: s.hotkeyKeys, mode: s.hotkeyMode, tapToLock: s.tapToLock });
 }
 
 async function startEngine() {
@@ -151,9 +151,9 @@ function registerIpc(d) {
     hotkeys.setEnabled(false);
     try {
       const res = await hotkeys.captureNext();
-      if (!res) return null;
-      config.set({ hotkey: res.label, hotkeyCode: res.keycode, hotkeyModifiers: res.modifiers });
-      return res.label;
+      if (!res || res.error) return res;
+      config.set({ hotkey: res.label, hotkeyKeys: res.keys });
+      return { label: res.label, typing: res.typing };
     } finally {
       hotkeys.setEnabled(true);
     }
