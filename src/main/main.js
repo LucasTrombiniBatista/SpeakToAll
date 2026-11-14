@@ -164,6 +164,10 @@ function registerIpc(d) {
   });
 
   ipcMain.handle('overlay:preview', (_e, type) => windows.overlayCommand(type === 'recording' ? { type: 'start', ...config.get() } : { type }));
+  // Ações do menu do botão direito: o Chromium só cola de verdade pelo webContents.
+  ipcMain.handle('edit:command', (e, cmd) => {
+    if (['cut', 'copy', 'paste', 'selectAll', 'undo', 'redo'].includes(cmd)) e.sender[cmd]();
+  });
   ipcMain.handle('open-external', (_e, url) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); });
 
   ipcMain.handle('plugins:list', () => plugins.list());

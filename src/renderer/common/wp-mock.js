@@ -179,6 +179,7 @@
       window.addEventListener('keydown', onKey, true);
     }); },
     async previewOverlay(state) { window.open(`../overlay/overlay.html?preview=${state}`, 'overlay', 'width=360,height=110'); },
+    async editCommand(cmd) { document.execCommand(cmd); },
     async openExternal(url) { if (/^https?:\/\//.test(url)) window.open(url, '_blank'); },
     async listPlugins() { return pluginList(); },
     async enablePlugin(id) { plugins.find((p) => p.id === id).enabled = true; emit('plugins:changed'); return pluginList(); },
