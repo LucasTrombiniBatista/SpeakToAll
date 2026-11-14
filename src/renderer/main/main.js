@@ -920,6 +920,58 @@ $('#ob-next').addEventListener('click', async () => {
   $('#onboarding').hidden = true;
 });
 
+/* ---------- menu do botão direito ---------- */
+// Substitui o menu nativo: em campos, Desfazer/Recortar/Copiar/Colar/Selecionar tudo; com texto
+// selecionado no conteúdo, Copiar; no resto da interface, nada.
+let ctxMenu = null;
+function closeCtxMenu() { ctxMenu?.remove(); ctxMenu = null; }
+function openCtxMenu(x, y, items) {
+  closeCtxMenu();
+  const m = document.createElement('div');
+  m.className = 'ctx-menu';
+  m.setAttribute('role', 'menu');
+  for (const it of items) {
+    if (it === '-') { m.append(document.createElement('hr')); continue; }
+    const b = document.createElement('button');
+    b.setAttribute('role', 'menuitem');
+    b.disabled = !!it.disabled;
+    b.innerHTML = `<span></span><kbd>${it.keys || ''}</kbd>`;
+    b.firstChild.textContent = it.label;
+    b.addEventListener('click', () => { closeCtxMenu(); it.run(); });
+    m.append(b);
+  }
+  document.body.append(m);
+  const r = m.getBoundingClientRect();
+  m.style.left = `${Math.max(4, Math.min(x, innerWidth - r.width - 4))}px`;
+  m.style.top = `${Math.max(4, Math.min(y, innerHeight - r.height - 4))}px`;
+  ctxMenu = m;
+}
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const field = e.target.closest('input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea, [contenteditable]');
+  const sel = String(window.getSelection() || '');
+  const hasSel = field ? field.selectionStart !== field.selectionEnd || !!sel : !!sel;
+  const cmd = (c) => () => { field?.focus(); api.editCommand(c); };
+  let items;
+  if (field) {
+    const ro = field.readOnly || field.disabled;
+    items = [
+      { label: t('menu.desfazer', {}, 'Desfazer'), keys: 'Ctrl+Z', disabled: ro, run: cmd('undo') }, '-',
+      { label: t('menu.recortar', {}, 'Recortar'), keys: 'Ctrl+X', disabled: ro || !hasSel, run: cmd('cut') },
+      { label: t('menu.copiar', {}, 'Copiar'), keys: 'Ctrl+C', disabled: !hasSel, run: cmd('copy') },
+      { label: t('menu.colar', {}, 'Colar'), keys: 'Ctrl+V', disabled: ro, run: cmd('paste') }, '-',
+      { label: t('menu.selecionar-tudo', {}, 'Selecionar tudo'), keys: 'Ctrl+A', run: cmd('selectAll') },
+    ];
+  } else if (sel && e.target.closest('.selectable')) {
+    items = [{ label: t('menu.copiar', {}, 'Copiar'), keys: 'Ctrl+C', run: cmd('copy') }];
+  } else return closeCtxMenu();
+  openCtxMenu(e.clientX, e.clientY, items);
+});
+document.addEventListener('mousedown', (e) => { if (ctxMenu && !ctxMenu.contains(e.target)) closeCtxMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCtxMenu(); });
+window.addEventListener('blur', closeCtxMenu);
+window.addEventListener('resize', closeCtxMenu);
+
 /* ---------- inicialização ---------- */
 (async function init() {
   [settings, dict] = await Promise.all([api.getSettings(), api.i18n()]);

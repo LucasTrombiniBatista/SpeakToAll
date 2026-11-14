@@ -122,7 +122,7 @@
 
             <div class="summary card" id="note-summary" hidden>
               <div class="eyebrow" data-i18n="notas.resumo">Resumo</div>
-              <p id="note-summary-text"></p>
+              <p class="selectable" id="note-summary-text"></p>
             </div>
 
             <div class="seg" id="note-tabs" role="tablist">
@@ -130,7 +130,7 @@
               <button data-tab="segments" data-i18n="notas.segmentos">Segmentos</button>
             </div>
             <textarea class="note-text" id="note-text" spellcheck="true"></textarea>
-            <ol class="segments" id="note-segments" hidden></ol>
+            <ol class="segments selectable" id="note-segments" hidden></ol>
           </article>
 
           <aside class="ai-panel" id="ai-panel" hidden>
@@ -140,7 +140,7 @@
               <button class="btn btn-sm btn-ghost" id="ai-close" aria-label="Fechar" data-i18n-aria="attr.fechar">✕</button>
             </header>
             <button class="btn btn-sm" id="ai-summarize" data-i18n="notas.gerar-resumo-e-titulo">Gerar resumo e título</button>
-            <div class="ai-messages" id="ai-messages"></div>
+            <div class="ai-messages selectable" id="ai-messages"></div>
             <form class="ai-form" id="ai-form">
               <input class="input" id="ai-input" placeholder="Pergunte sobre esta nota…" data-i18n-placeholder="attr.pergunte-sobre-esta-nota" autocomplete="off">
               <button class="btn btn-primary" type="submit" data-i18n="notas.enviar">Enviar</button>

@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('wp', {
   cancelHotkeyCapture: () => ipcRenderer.invoke('hotkey:cancel-capture'),
   previewOverlay: (state) => ipcRenderer.invoke('overlay:preview', state),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  editCommand: (cmd) => ipcRenderer.invoke('edit:command', cmd),
   listPlugins: () => ipcRenderer.invoke('plugins:list'),
   enablePlugin: (id) => ipcRenderer.invoke('plugins:enable', id),
   disablePlugin: (id) => ipcRenderer.invoke('plugins:disable', id),

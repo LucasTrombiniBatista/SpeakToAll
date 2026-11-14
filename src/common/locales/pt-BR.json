@@ -1,4 +1,9 @@
 {
+  "menu.desfazer": "Desfazer",
+  "menu.recortar": "Recortar",
+  "menu.copiar": "Copiar",
+  "menu.colar": "Colar",
+  "menu.selecionar-tudo": "Selecionar tudo",
   "nav.notes": "Notas",
   "nav.import": "Importar áudio",
   "nav.meeting": "Reunião",
