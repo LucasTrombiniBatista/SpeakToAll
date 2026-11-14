@@ -46,7 +46,7 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 
 1. **Tecla** — `hotkeys.js` observa o teclado (hook passivo, não bloqueia a tecla) e emite `start`.
 2. **Checagem** — `dictation.js` confere `engine.status()`. Sem motor: mostra erro no overlay e abre o onboarding.
-3. **Gravação** — manda `{type:'start'}` ao overlay, que aparece com `showInactive()` (não rouba o foco do app de destino) e grava em 16 kHz.
+3. **Gravação** — manda `{type:'start'}` ao overlay, que aparece com `showInactive()` (não rouba o foco do app de destino) e grava em 16 kHz. O mic é aberto por `openMic` (`src/renderer/common/audio.js`): pede o dispositivo **exato** escolhido com cancelamento de eco/ruído; se falhar, tenta o mesmo mic sem processamento (resolve o caso de outro app, como o Discord, já estar usando o dispositivo); se o id salvo não existe mais, cai no padrão do sistema. Se os primeiros ~700 ms vierem só com zeros, o overlay reabre o mic uma vez sem processamento; se continuar mudo, mostra "Microfone sem sinal" ao soltar. Quando o mic não abre, o overlay ainda manda um WAV vazio no `stop` para o main não ficar preso em `transcribing`.
 4. **Soltar** — `stop` → overlay corta o silêncio do começo e do fim (folga de ~250 ms), codifica WAV PCM 16-bit mono e envia por `overlay:audio`. O overlay usa um único `AudioContext` (gravação + bipes), suspenso entre ditados.
 5. **Transcrição** — áudios < 350 ms (ou só silêncio) são descartados; o resto vai para `engine.transcribe` (POST `/inference`, `temperature` 0 sem fallback, para decodificar uma vez só).
 6. **Limpeza** — `cleanTranscript` remove `[BLANK_AUDIO]`, `(música)`, `♪` e junta tudo numa linha (evita Enter acidental em chats). Em seguida o texto passa pelos processadores dos plugins ativos (`plugins.processText`).
@@ -86,3 +86,9 @@ Notas enviadas ao Obsidian são gravadas na pasta escolhida pelo usuário (de pr
 - CSP nas páginas; `open-external` aceita apenas `http(s)://`.
 - `aiApiKey` fica em `settings.json` em texto puro e não aparece em `getSettings()` dos plugins.
 - A gravação no vault do Obsidian limpa os nomes, ignora `..` e confere se o destino está dentro da pasta escolhida.
+
+## Solução de problemas: microfone
+
+- **Funciona sozinho, mas não com o Discord/Teams aberto**: o SpeakToAll já tenta abrir o mic sem o processamento do Chromium. Se ainda falhar, abra *Painel de Som → Gravação → (seu mic) → Propriedades → Avançado* e desmarque **"Permitir que aplicativos assumam o controle exclusivo deste dispositivo"**.
+- **Volume cai quando o Discord está em call**: em *Painel de Som → Comunicações*, escolha **"Não fazer nada"**.
+- **Gravou o mic errado**: o mic escolhido não foi encontrado (id mudou ao trocar de porta USB). Escolha de novo em Configurações.
