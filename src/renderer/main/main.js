@@ -1,5 +1,5 @@
 const api = window.wp;
-const { fmtClock, fileToWav, createRecorder } = window.staAudio;
+const { fmtClock, fileToWav, createRecorder, openMic } = window.staAudio;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -382,7 +382,7 @@ async function startMeeting() {
     if (display.getAudioTracks().length) streams.push(new MediaStream(display.getAudioTracks()));
   } catch {}
   if ($('#meeting-mic').checked) {
-    try { streams.push(await navigator.mediaDevices.getUserMedia({ audio: { deviceId: settings.micDevice } })); } catch {}
+    try { streams.push((await openMic(settings.micDevice, { processing: false })).stream); } catch {}
   }
   if (!streams.length) return toast(t('js.no-audio-source', {}, 'Nenhuma fonte de áudio disponível'));
 
@@ -556,14 +556,20 @@ async function saveSetting(key, value) {
   if (['model', 'engineFlavor', 'language', 'initialPrompt'].includes(key)) toast(t('js.engine-restart', {}, 'Motor será reiniciado'));
 }
 
+// Preenche todos os seletores de microfone (Configurações e onboarding).
+// Antes da permissão de mic o Chromium não entrega os nomes; por isso roda de novo depois dela.
 async function loadMics() {
   try {
-    const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default');
-    const sel = $('#set-mic');
-    for (const d of devs) sel.add(new Option(d.label || t('js.mic-n', { n: sel.length }, 'Microfone {n}'), d.deviceId));
-    sel.value = settings.micDevice || 'default';
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default' && d.deviceId !== 'communications');
+    for (const sel of $$('select[data-setting="micDevice"]')) {
+      sel.length = 1;
+      devs.forEach((d, i) => sel.add(new Option(d.label || t('js.mic-n', { n: i + 1 }, 'Microfone {n}'), d.deviceId)));
+      sel.value = settings.micDevice || 'default';
+      if (sel.selectedIndex < 0) sel.value = 'default';
+    }
   } catch {}
 }
+navigator.mediaDevices?.addEventListener?.('devicechange', loadMics);
 
 $('#set-hotkey').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
@@ -877,11 +883,13 @@ async function runInstall() {
 
 async function startMicTest() {
   const levels = [];
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const { stream, fellBack } = await openMic(settings.micDevice);
+  if (fellBack) toast(t('js.mic-fallback', {}, 'Microfone escolhido não encontrado. Usando o padrão do sistema.'));
   const rec = await createRecorder([stream], (lv) => levels.push(lv));
   const loop = () => { drawBars($('#ob-mic'), levels, getComputedStyle(document.body).getPropertyValue('--sta-cobalt')); obMic.raf = requestAnimationFrame(loop); };
   obMic = { rec, raf: 0 };
   loop();
+  loadMics();
 }
 function stopMicTest() {
   if (!obMic) return;
@@ -891,6 +899,14 @@ function stopMicTest() {
 }
 $('#ob-mic-btn').addEventListener('click', async () => {
   try { await startMicTest(); $('#ob-mic-btn').hidden = true; } catch { toast(t('js.mic-denied', {}, 'Permissão de microfone negada')); }
+});
+
+// Trocar o mic no onboarding reinicia o teste com o dispositivo novo (o onchange salva a escolha).
+$('#ob-mic-select').addEventListener('change', async () => {
+  if (!obMic) return;
+  stopMicTest();
+  await new Promise((r) => setTimeout(r, 50));
+  try { await startMicTest(); } catch { toast(t('overlay.mic-unavailable', {}, 'Microfone indisponível')); }
 });
 
 $('#ob-back').addEventListener('click', () => goStep(Math.max(0, obStep - (obStep === 3 ? 2 : 1))));
