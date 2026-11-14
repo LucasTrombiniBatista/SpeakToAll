@@ -136,6 +136,7 @@
   "onboarding.aguardando": "Waiting…",
   "onboarding.teste-o-microfone": "Test the microphone",
   "onboarding.fale-algo-as-barras": "Say something. The bars should move.",
+  "onboarding.microfone": "Microphone",
   "onboarding.ativar-microfone": "Enable microphone",
   "onboarding.pronto": "Ready.",
   "onboarding.clique-em-qualquer-campo": "Click any text field, hold the key and speak. Release to insert.",
@@ -260,6 +261,7 @@
   "js.no-nvidia": "no NVIDIA",
   "js.recommended": "RECOMMENDED",
   "js.loading-model": "Loading model into memory…",
+  "js.mic-fallback": "Selected microphone not found. Using the system default.",
   "js.mic-denied": "Microphone permission denied",
   "tray.open": "Open SpeakToAll",
   "tray.record": "Record / Stop",
@@ -275,5 +277,6 @@
   "overlay.done": "Inserted",
   "overlay.error": "Something went wrong",
   "overlay.locked": "LOCKED",
+  "overlay.mic-silent": "No signal from the microphone. Is another app using it?",
   "overlay.mic-unavailable": "Microphone unavailable"
 }

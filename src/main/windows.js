@@ -121,6 +121,7 @@ function overlayCommand(cmd) {
   const labels = {
     transcribing: t('overlay.transcribing'), done: t('overlay.done'), error: t('overlay.error'),
     locked: t('overlay.locked'), micUnavailable: t('overlay.mic-unavailable'),
+    micSilent: t('overlay.mic-silent'),
   };
   overlayWin.webContents.send('overlay:command', { ...cmd, labels });
 }

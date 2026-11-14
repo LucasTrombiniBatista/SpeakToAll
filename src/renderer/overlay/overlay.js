@@ -1,5 +1,5 @@
 // Pílula de gravação. Comandos vindos do main: start, stop, cancel, lock, transcribing, done, error.
-const { createRecorder, fmtClock, SAMPLE_RATE } = window.staAudio;
+const { createRecorder, openMic, encodeWav, fmtClock, SAMPLE_RATE } = window.staAudio;
 const $ = (id) => document.getElementById(id);
 const MIN_MS = 350;
 
@@ -8,9 +8,15 @@ let levels = [];
 let t0 = 0;
 let raf = 0;
 let hideTimer = 0;
+// Detecção de mic mudo: cada ditado tem um id para descartar reaberturas que chegam atrasadas.
+const SILENT_RMS = 1e-4;
+const SILENT_CHECK_MS = 700;
+let session = 0;
+let silent = false;
+let silentTimer = 0;
 let opts = { sounds: true, micDevice: 'default' };
 // Padrão em português; o main manda os rótulos no idioma da interface com cada comando.
-let labels = { transcribing: 'Transcrevendo…', done: 'Inserido', error: 'Algo deu errado', locked: 'TRAVADO', micUnavailable: 'Microfone indisponível' };
+let labels = { transcribing: 'Transcrevendo…', done: 'Inserido', error: 'Algo deu errado', locked: 'TRAVADO', micUnavailable: 'Microfone indisponível', micSilent: 'Microfone sem sinal. Está em uso por outro app?' };
 
 // Um AudioContext só, para gravar e para os bipes: criar um por ditado atrasa o início da gravação.
 // Fica suspenso entre ditados para não manter o dispositivo de áudio aberto.
@@ -80,35 +86,73 @@ function draw() {
   raf = requestAnimationFrame(draw);
 }
 
+async function openRec(processing) {
+  const { stream } = await openMic(opts.micDevice, { processing });
+  return createRecorder([stream], (lv) => levels.push(lv), audio());
+}
+
+const isSilent = () => !levels.some((lv) => lv > SILENT_RMS);
+
+// Mic que abre mas só entrega zeros (comum quando o Discord já usa o dispositivo):
+// reabre uma vez sem o processamento do Chromium; se continuar mudo, avisa no fim.
+async function checkSilent(id, retried) {
+  if (id !== session || !rec || !isSilent()) return;
+  if (retried) { silent = true; return; }
+  const old = rec;
+  try {
+    const next = await openRec(false);
+    if (id !== session || rec !== old) return next.stop();
+    rec = next;
+    levels = [];
+    old.stop();
+    silentTimer = setTimeout(() => checkSilent(id, true), SILENT_CHECK_MS);
+  } catch { silent = true; }
+}
+
 async function start(cmd = {}) {
   opts = { ...opts, ...cmd };
+  const id = ++session;
   levels = [];
+  silent = false;
+  clearTimeout(silentTimer);
   setState('recording');
   beep(880);
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { deviceId: opts.micDevice, echoCancellation: true, noiseSuppression: true },
-    });
-    rec = await createRecorder([stream], (lv) => levels.push(lv), audio());
+    const r = await openRec(true);
+    if (id !== session) return r.stop();
+    rec = r;
   } catch {
     return setState('error', labels.micUnavailable);
   }
   t0 = performance.now();
   draw();
+  silentTimer = setTimeout(() => checkSilent(id, false), SILENT_CHECK_MS);
 }
 
+// O main fica esperando um WAV depois do stop; sem gravação, manda um vazio para ele liberar.
+const sendEmpty = () => window.wp.sendAudio(encodeWav(new Float32Array(0)));
+
 async function stop() {
-  if (!rec) return;
+  session++;
+  clearTimeout(silentTimer);
+  if (!rec) return sendEmpty();
   cancelAnimationFrame(raf);
   const r = rec; rec = null;
+  const wasSilent = silent && isSilent();
   const { wav, durationMs } = await r.stop({ trim: true });
   beep(660);
   idleLater();
+  if (wasSilent) {
+    setState('error', labels.micSilent);
+    return setTimeout(sendEmpty, 2400);
+  }
   if (durationMs >= MIN_MS) setState('transcribing');
   window.wp.sendAudio(wav);
 }
 
 async function cancel() {
+  session++;
+  clearTimeout(silentTimer);
   cancelAnimationFrame(raf);
   if (rec) { await rec.stop(); rec = null; }
   idleLater();

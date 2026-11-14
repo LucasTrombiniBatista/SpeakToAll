@@ -88,6 +88,27 @@
     };
   }
 
+  // Abre o microfone escolhido com fallback em cascata:
+  // 1) dispositivo exato com processamento; 2) exato sem processamento (o AEC do Chromium
+  // falha ou fica mudo quando outro app, como o Discord, já usa o mic); 3) padrão do sistema
+  // quando o id salvo não existe mais. Sem `exact`, o Chromium trocaria de mic em silêncio.
+  async function openMic(deviceId = 'default', { processing = true } = {}) {
+    const id = deviceId && deviceId !== 'default' ? { exact: deviceId } : undefined;
+    const fx = (on) => ({ echoCancellation: on, noiseSuppression: on, autoGainControl: on });
+    const tries = [];
+    if (processing) tries.push({ deviceId: id, ...fx(true) });
+    tries.push({ deviceId: id, ...fx(false) });
+    let lastErr;
+    for (const audio of tries) {
+      try { return { stream: await navigator.mediaDevices.getUserMedia({ audio }), fellBack: false }; }
+      catch (err) { lastErr = err; if (err.name === 'NotAllowedError') throw err; }
+    }
+    if (!id) throw lastErr;
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: processing ? fx(true) : fx(false) })
+      .catch(() => navigator.mediaDevices.getUserMedia({ audio: true }));
+    return { stream, fellBack: true };
+  }
+
   function fmtClock(ms, withMs = false) {
     const t = Math.max(0, Math.floor(ms));
     const h = Math.floor(t / 3600000), m = Math.floor(t / 60000) % 60, s = Math.floor(t / 1000) % 60;
@@ -96,5 +117,5 @@
     return withMs ? `${base}.${pad(t % 1000, 3)}` : base;
   }
 
-  window.staAudio = { SAMPLE_RATE, encodeWav, concat, rms, fileToWav, createRecorder, fmtClock };
+  window.staAudio = { SAMPLE_RATE, encodeWav, concat, rms, fileToWav, createRecorder, openMic, fmtClock };
 })();

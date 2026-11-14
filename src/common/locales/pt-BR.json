@@ -136,6 +136,7 @@
   "onboarding.aguardando": "Aguardando…",
   "onboarding.teste-o-microfone": "Teste o microfone",
   "onboarding.fale-algo-as-barras": "Fale algo. As barras devem se mexer.",
+  "onboarding.microfone": "Microfone",
   "onboarding.ativar-microfone": "Ativar microfone",
   "onboarding.pronto": "Pronto.",
   "onboarding.clique-em-qualquer-campo": "Clique em qualquer campo de texto, segure a tecla e fale. Solte para inserir.",
@@ -260,6 +261,7 @@
   "js.no-nvidia": "nenhuma NVIDIA",
   "js.recommended": "RECOMENDADO",
   "js.loading-model": "Carregando modelo na memória…",
+  "js.mic-fallback": "Microfone escolhido não encontrado. Usando o padrão do sistema.",
   "js.mic-denied": "Permissão de microfone negada",
   "tray.open": "Abrir SpeakToAll",
   "tray.record": "Gravar / Parar",
@@ -275,5 +277,6 @@
   "overlay.done": "Inserido",
   "overlay.error": "Algo deu errado",
   "overlay.locked": "TRAVADO",
+  "overlay.mic-silent": "Microfone sem sinal. Está em uso por outro app?",
   "overlay.mic-unavailable": "Microfone indisponível"
 }
