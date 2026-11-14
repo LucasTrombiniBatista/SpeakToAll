@@ -8,6 +8,18 @@
 .fullscreen .titlebar { display: none; }
 .fullscreen .app { height: 100vh; }
 
+/* Texto da interface não é selecionável; só o conteúdo (campos, nota, resumo, segmentos, chat). */
+body { user-select: none; -webkit-user-select: none; cursor: default; }
+input, textarea, [contenteditable], .selectable, .selectable * { user-select: text; -webkit-user-select: text; }
+
+/* Menu do botão direito (substitui o do Windows/Chromium) */
+.ctx-menu { position: fixed; z-index: 1000; min-width: 180px; padding: 6px; background: var(--sta-surface); border: 1px solid var(--sta-line); border-radius: 10px; box-shadow: var(--shadow-pop); }
+.ctx-menu button { display: flex; justify-content: space-between; gap: 24px; width: 100%; padding: 7px 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; color: inherit; font: inherit; font-size: 13px; text-align: left; }
+.ctx-menu button:hover:not(:disabled) { background: var(--sta-soft); }
+.ctx-menu button:disabled { opacity: .4; cursor: default; }
+.ctx-menu kbd { font: 500 11px var(--font-mono); color: var(--sta-muted, #888); background: none; border: 0; padding: 0; }
+.ctx-menu hr { border: 0; border-top: 1px solid var(--sta-line); margin: 4px 2px; }
+
 /* Sidebar */
 .sidebar {
   display: flex; flex-direction: column; gap: 24px; padding: 20px 14px;
@@ -27,7 +39,10 @@
 .nav .count { margin-left: auto; color: var(--sta-muted); }
 .rec-dot { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--sta-onair); animation: pulse 1.2s infinite; }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; padding: 0 6px; }
-.hint { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.hint { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; }
+/* Cada pedaço fica inteiro; atalhos longos (Ctrl+Shift+Space) descem "para ditar" para a linha de baixo. */
+.hint > * { white-space: nowrap; }
+.hint kbd { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .engine-status { border: 0; padding: 0; background: none; cursor: pointer; text-align: left; }
 
 .content { min-width: 0; overflow: hidden; }
