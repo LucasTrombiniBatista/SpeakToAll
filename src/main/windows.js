@@ -53,7 +53,7 @@ function setWindowMode(mode) {
   else if (mode === 'windowed' && mainWin.isMaximized()) mainWin.unmaximize();
 }
 
-function createMain({ closeToTray, windowMode }) {
+function createMain({ closeToTray, windowMode, startHidden = false }) {
   mainWin = new BrowserWindow({
     width: 1180, height: 760, minWidth: 900, minHeight: 600,
     backgroundColor: themeColors().bg, title: 'SpeakToAll', show: false,
@@ -68,7 +68,10 @@ function createMain({ closeToTray, windowMode }) {
   });
   mainWin.removeMenu();
   mainWin.loadFile(path.join(ROOT, 'renderer', 'main', 'index.html'));
-  mainWin.once('ready-to-show', () => { setWindowMode(windowMode()); mainWin.show(); });
+  // Aberto pelo login do Windows: fica só na bandeja (o modo de janela é aplicado ao mostrar).
+  let modeApplied = false;
+  applyMode = () => { if (!modeApplied) { modeApplied = true; setWindowMode(windowMode()); } };
+  mainWin.once('ready-to-show', () => { if (!startHidden) { applyMode(); mainWin.show(); } });
   // Em tela cheia o Windows esconde os botões; o renderer some com a faixa do topo.
   mainWin.on('enter-full-screen', () => send('window:fullscreen', true));
   mainWin.on('leave-full-screen', () => send('window:fullscreen', false));
@@ -128,8 +131,10 @@ function overlayCommand(cmd) {
 
 function hideOverlay() { overlayWin?.hide(); }
 
+let applyMode = () => {};
 function showMain() {
   if (!mainWin) return;
+  applyMode();
   if (mainWin.isMinimized()) mainWin.restore();
   mainWin.show();
   mainWin.focus();

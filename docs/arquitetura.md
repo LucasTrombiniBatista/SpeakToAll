@@ -12,7 +12,7 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 │       │  overlay:command                    ▲ overlay:audio (WAV 16 kHz mono)            │
 │       ▼                                     │                                           │
 │  ┌──────────── Janela OVERLAY (renderer, focusable:false) ────────────┐                 │
-│  │ getUserMedia → AudioWorklet (PCM) → encodeWav → pílula com níveis  │                 │
+│  │ getUserMedia → AudioWorklet (PCM) → encodeWav → pílula com barras  │                 │
 │  └────────────────────────────────────────────────────────────────────┘                 │
 │       ▼                                                                                │
 │  engine.js ── POST /inference ──► whisper-server.exe (modelo carregado, porta livre)     │
@@ -44,7 +44,7 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 
 ## Fluxo de um ditado
 
-1. **Tecla** — `hotkeys.js` observa o teclado (hook passivo, não bloqueia a tecla) e emite `start`.
+1. **Tecla** — `hotkeys.js` observa o teclado (hook passivo, não bloqueia a tecla) e emite `start` quando todas as teclas do atalho (1 a 3) estão apertadas.
 2. **Checagem** — `dictation.js` confere `engine.status()`. Sem motor: mostra erro no overlay e abre o onboarding.
 3. **Gravação** — manda `{type:'start'}` ao overlay, que aparece com `showInactive()` (não rouba o foco do app de destino) e grava em 16 kHz. O mic é aberto por `openMic` (`src/renderer/common/audio.js`): pede o dispositivo **exato** escolhido com cancelamento de eco/ruído; se falhar, tenta o mesmo mic sem processamento (resolve o caso de outro app, como o Discord, já estar usando o dispositivo); se o id salvo não existe mais, cai no padrão do sistema. Se os primeiros ~700 ms vierem só com zeros, o overlay reabre o mic uma vez sem processamento; se continuar mudo, mostra "Microfone sem sinal" ao soltar. Quando o mic não abre, o overlay ainda manda um WAV vazio no `stop` para o main não ficar preso em `transcribing`.
 4. **Soltar** — `stop` → overlay corta o silêncio do começo e do fim (folga de ~250 ms), codifica WAV PCM 16-bit mono e envia por `overlay:audio`. O overlay usa um único `AudioContext` (gravação + bipes), suspenso entre ditados.

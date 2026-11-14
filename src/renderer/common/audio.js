@@ -109,6 +109,50 @@
     return { stream, fellBack: true };
   }
 
+  // Barras de nível com movimento contínuo. Os níveis chegam a cada ~128 ms (um bloco do worklet).
+  // A posição da fila (`head`, em barras) persegue a quantidade de níveis sem nunca voltar para trás,
+  // e cada barra persegue a própria altura (sobe rápido, desce devagar). Antes a fila deslizava e
+  // dava um tranco de volta a cada bloco, o que parecia uma tremida. O estado fica por canvas.
+  const barState = new WeakMap();
+  const ATTACK_MS = 60, RELEASE_MS = 160, SCROLL_MS = 150, NOISE = 0.004, FULL = 0.13;
+  function drawBars(canvas, levels, color, { bw = 3, gap = 3, n = 0, minH = 3 } = {}) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const step = bw + gap;
+    const slots = n || Math.floor(w / step);
+    const now = performance.now();
+    let st = barState.get(canvas);
+    if (!st || levels.length < st.count) st = { disp: [], base: 0, count: 0, head: levels.length, last: now };
+    barState.set(canvas, st);
+    const dt = Math.min(64, Math.max(0, now - st.last)); st.last = now;
+    st.count = levels.length;
+    // Pulo grande (ex.: janela escondida) não vira uma corrida de barras.
+    if (st.count - st.head > slots) st.head = st.count - 1;
+    st.head += (st.count - st.head) * (1 - Math.exp(-dt / SCROLL_MS));
+    const first = Math.max(0, Math.floor(st.head) - slots - 1);
+    if (first > st.base) { st.disp.splice(0, first - st.base); st.base = first; }
+    while (st.base + st.disp.length < st.count) st.disp.push(0);
+    ctx.fillStyle = color;
+    for (let j = Math.max(st.base, first); j < st.count; j++) {
+      const k = j - st.base;
+      const goal = Math.min(1, Math.sqrt(Math.max(0, levels[j] - NOISE) / FULL));
+      const d = st.disp[k];
+      st.disp[k] = d + (goal - d) * (1 - Math.exp(-dt / (goal > d ? ATTACK_MS : RELEASE_MS)));
+      const x = (slots - (st.head - j)) * step;
+      if (x < -bw || x > w) continue;
+      const bh = Math.max(minH, st.disp[k] * h);
+      ctx.beginPath();
+      ctx.roundRect(x, (h - bh) / 2, bw, bh, bw / 2);
+      ctx.fill();
+    }
+  }
+
   function fmtClock(ms, withMs = false) {
     const t = Math.max(0, Math.floor(ms));
     const h = Math.floor(t / 3600000), m = Math.floor(t / 60000) % 60, s = Math.floor(t / 1000) % 60;
@@ -117,5 +161,5 @@
     return withMs ? `${base}.${pad(t % 1000, 3)}` : base;
   }
 
-  window.staAudio = { SAMPLE_RATE, encodeWav, concat, rms, fileToWav, createRecorder, openMic, fmtClock };
+  window.staAudio = { SAMPLE_RATE, encodeWav, concat, rms, fileToWav, createRecorder, openMic, drawBars, fmtClock };
 })();

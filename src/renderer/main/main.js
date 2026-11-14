@@ -76,22 +76,7 @@ function dayGroup(ts) {
   return d.toLocaleDateString(locale(), { day: '2-digit', month: 'long' });
 }
 
-function drawBars(canvas, levels, color) {
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  canvas.width = w * dpr; canvas.height = h * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const bw = 4, gap = 3, n = Math.floor(w / (bw + gap));
-  const slice = levels.slice(-n);
-  ctx.fillStyle = color;
-  slice.forEach((lv, i) => {
-    const bh = Math.max(4, Math.min(h, lv * h * 6));
-    ctx.beginPath();
-    ctx.roundRect(i * (bw + gap), (h - bh) / 2, bw, bh, 2);
-    ctx.fill();
-  });
-}
+const drawBars = (canvas, levels, color) => window.staAudio.drawBars(canvas, levels, color, { bw: 4, gap: 3, minH: 4 });
 
 /* ---------- navegação ---------- */
 // Só a view que entra anima (opacity/transform, sem layout); a que sai some na hora.
@@ -571,16 +556,35 @@ async function loadMics() {
 }
 navigator.mediaDevices?.addEventListener?.('devicechange', loadMics);
 
+// Clicar de novo enquanto captura cancela. Antes, o segundo clique abria outra captura e a
+// primeira, ao terminar vazia, restaurava o botão por cima da segunda (ficava "Alterar" capturando).
+let capturingHotkey = false;
+const swallowKey = (e) => { e.preventDefault(); e.stopPropagation(); };
 $('#set-hotkey').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
+  if (capturingHotkey) return api.cancelHotkeyCapture();
+  capturingHotkey = true;
+  // Espaço/Enter num botão focado viram clique (e cancelariam a captura); tira o foco e
+  // engole as teclas na janela enquanto captura. O hook global continua vendo tudo.
+  btn.blur();
+  window.addEventListener('keydown', swallowKey, true);
+  window.addEventListener('keyup', swallowKey, true);
   btn.classList.add('capturing');
   $('#set-hotkey-label').textContent = '…';
-  btn.lastChild.textContent = t('js.press-key', {}, 'Pressione a tecla');
-  const key = await api.captureHotkey();
+  btn.lastChild.textContent = t('js.press-key', {}, 'Pressione até 3 teclas');
+  let res = null;
+  try { res = await api.captureHotkey(); } finally {
+    capturingHotkey = false;
+    window.removeEventListener('keydown', swallowKey, true);
+    window.removeEventListener('keyup', swallowKey, true);
+  }
   btn.classList.remove('capturing');
   btn.lastChild.textContent = t('configuracoes.alterar', {}, 'Alterar');
-  if (key) await saveSetting('hotkey', key);
-  else renderHotkey();
+  // O main já salvou a combinação; aqui só atualiza a tela e avisa sobre teclas que digitam.
+  if (res?.label && !res.error) settings = await api.getSettings();
+  renderHotkey();
+  if (res?.error === 'typing') toast(t('js.hotkey-typing-alone', { key: res.label }, '{key} sozinha digitaria no app. Combine com Ctrl, Alt ou Shift.'));
+  else if (res?.typing) toast(t('js.hotkey-typing', {}, 'Atenção: as teclas do atalho também são digitadas no app em foco.'));
 });
 $$('[data-preview]').forEach((b) => b.addEventListener('click', () => api.previewOverlay(b.dataset.preview)));
 $('#set-reinstall').addEventListener('click', () => openOnboarding(1));

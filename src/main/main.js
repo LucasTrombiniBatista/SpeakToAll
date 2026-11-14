@@ -24,7 +24,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 app.setAppUserModelId('com.lucastrombini.speaktoall');
 
 const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality'];
-const HOTKEY_KEYS = ['hotkeyCode', 'hotkeyModifiers', 'hotkeyMode', 'tapToLock'];
+const HOTKEY_KEYS = ['hotkeyKeys', 'hotkeyMode', 'tapToLock'];
 let chatAbort = null;
 let installing = false;
 
@@ -34,7 +34,7 @@ function dirs() {
 }
 
 function configureHotkeys(s) {
-  hotkeys.configure({ keycode: s.hotkeyCode, modifiers: s.hotkeyModifiers, mode: s.hotkeyMode, tapToLock: s.tapToLock });
+  hotkeys.configure({ keys: s.hotkeyKeys, mode: s.hotkeyMode, tapToLock: s.tapToLock });
 }
 
 async function startEngine() {
@@ -147,14 +147,18 @@ function registerIpc(d) {
     if (vault && rel) shell.openExternal(obsidian.openUri(vault, rel));
   });
 
+  ipcMain.handle('hotkey:cancel-capture', () => hotkeys.cancelCapture());
   ipcMain.handle('hotkey:capture', async () => {
     hotkeys.setEnabled(false);
+    // Sem nenhuma tecla em 15 s, desiste (o botão não fica preso em "Pressione…").
+    const timer = setTimeout(() => hotkeys.cancelCapture(), 15000);
     try {
       const res = await hotkeys.captureNext();
-      if (!res) return null;
-      config.set({ hotkey: res.label, hotkeyCode: res.keycode, hotkeyModifiers: res.modifiers });
-      return res.label;
+      if (!res || res.error) return res;
+      config.set({ hotkey: res.label, hotkeyKeys: res.keys });
+      return { label: res.label, typing: res.typing };
     } finally {
+      clearTimeout(timer);
       hotkeys.setEnabled(true);
     }
   });
@@ -195,6 +199,13 @@ app.on('before-quit', () => {
 });
 app.on('window-all-closed', () => app.quit());
 
+const HIDDEN_ARG = '--hidden';
+// Registra (ou remove) o app na inicialização do Windows. No `npm start` não registra o electron.exe.
+function syncLoginItem(on) {
+  if (!app.isPackaged) return;
+  app.setLoginItemSettings({ openAtLogin: !!on, args: [HIDDEN_ARG] });
+}
+
 app.whenReady().then(async () => {
   const d = dirs();
   config.init(d.base);
@@ -221,7 +232,13 @@ app.whenReady().then(async () => {
   registerIpc(d);
   windows.setupMedia();
   windows.setTheme(config.get().theme);
-  windows.createMain({ closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode });
+  // Aberto pelo login do Windows, já configurado: começa só na bandeja.
+  const atLogin = process.argv.includes(HIDDEN_ARG) || app.getLoginItemSettings().wasOpenedAtLogin;
+  windows.createMain({
+    closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode,
+    startHidden: atLogin && config.get().onboarded,
+  });
+  syncLoginItem(config.get().startWithWindows);
   windows.createOverlay();
   i18n.load(config.get().uiLanguage);
 
@@ -257,7 +274,7 @@ app.whenReady().then(async () => {
     if (keys.includes('theme')) windows.setTheme(s.theme);
     if (keys.includes('windowMode')) windows.setWindowMode(s.windowMode);
     if (keys.includes('autoCheckUpdates')) updater.schedule(s.autoCheckUpdates);
-    if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
+    if (keys.includes('startWithWindows')) syncLoginItem(s.startWithWindows);
   });
 
   injector.start();

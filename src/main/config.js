@@ -11,9 +11,10 @@ const DEFAULTS = {
   sounds: true, saveDictationNotes: true, saveAudio: false,
   aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
   obsidianVault: '', obsidianFolder: 'SpeakToAll', obsidianCategories: '', obsidianAutoDetect: true,
-  startWithWindows: false, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: false,
+  startWithWindows: true, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: false,
   windowMode: 'windowed', // windowed | maximized | fullscreen
-  hotkeyCode: 67,
+  hotkeyKeys: [67], // 1 a 3 keycodes do uIOhook (F9)
+  hotkeyCode: 67, // formato antigo, só lido na migração
   hotkeyModifiers: { ctrl: false, alt: false, shift: false, meta: false },
   threads: 0, // 0 = automático (núcleos físicos, ver engine.threadsFor)
   transcriptionQuality: 'fast',
@@ -47,6 +48,20 @@ class Config extends EventEmitter {
     let saved = {};
     try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')) || {}; } catch {}
     this.settings = { ...clone(DEFAULTS), ...saved };
+    // Até a 0.1.8 o padrão era desligado e ficava gravado no settings.json; liga uma vez para quem
+    // já tinha o app. Quem desligar depois disso continua desligado.
+    if (!this.settings.autostartMigrated) {
+      this.settings.startWithWindows = true;
+      this.settings.autostartMigrated = true;
+      if (Object.keys(saved).length) try { writeAtomic(this.file, JSON.stringify(this.settings, null, 2)); } catch {}
+    }
+    // Formato antigo (uma tecla + modificadores) → lista de teclas.
+    if (!Array.isArray(saved.hotkeyKeys) && Number.isInteger(saved.hotkeyCode)) {
+      const m = saved.hotkeyModifiers || {};
+      const own = { 29: 'ctrl', 3613: 'ctrl', 56: 'alt', 3640: 'alt', 42: 'shift', 54: 'shift', 3675: 'meta', 3676: 'meta' }[saved.hotkeyCode];
+      const keys = [['ctrl', 29], ['alt', 56], ['shift', 42], ['meta', 3675]].filter(([k]) => m[k] && own !== k).map(([, c]) => c);
+      this.settings.hotkeyKeys = [...keys, saved.hotkeyCode];
+    }
     if (this.settings.pluginCatalogUrl === OLD_CATALOG_URL) this.settings.pluginCatalogUrl = DEFAULTS.pluginCatalogUrl;
     return this.get();
   }

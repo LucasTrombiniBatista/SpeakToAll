@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('wp', {
   obsidianWrite: (id, data) => ipcRenderer.invoke('obsidian:write', id, data),
   openInObsidian: (relPath) => ipcRenderer.invoke('obsidian:open', relPath),
   captureHotkey: () => ipcRenderer.invoke('hotkey:capture'),
+  cancelHotkeyCapture: () => ipcRenderer.invoke('hotkey:cancel-capture'),
   previewOverlay: (state) => ipcRenderer.invoke('overlay:preview', state),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   listPlugins: () => ipcRenderer.invoke('plugins:list'),

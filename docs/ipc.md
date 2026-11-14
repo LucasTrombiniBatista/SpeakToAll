@@ -28,7 +28,8 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `obsidianSuggest(id)` | `obsidian:suggest` | `{folders, tags, presets, suggestion: {title, folder, tags, body}, aiError}`: com a IA fora do ar, `suggestion` traz os padrões e `aiError` traz a mensagem |
 | `obsidianWrite(id, {title, folder, tags, body})` | `obsidian:write` | `{path, uri}`: caminho relativo à pasta e link `obsidian://` (`null` se a pasta não for um vault) (o caminho fica salvo em `obsidianPath` na nota) |
 | `openInObsidian(relPath)` | `obsidian:open` | abre a nota no Obsidian |
-| `captureHotkey()` | `hotkey:capture` | rótulo da tecla (ex.: `"Ctrl+Shift+K"`) ou `null` |
+| `captureHotkey()` | `hotkey:capture` | `{label, typing}` (ex.: `"Ctrl+Shift+Space"`; já salvo em `hotkey`/`hotkeyKeys`), `{error:'typing', label}` ou `null` |
+| `cancelHotkeyCapture()` | `hotkey:cancel-capture` | cancela a captura em andamento (a captura também desiste sozinha após 15 s) |
 | `previewOverlay(state)` | `overlay:preview` | mostra o overlay no estado pedido |
 | `openExternal(url)` | `open-external` | só `http(s)://` |
 | `listPlugins()` | `plugins:list` | `[{id, manifest, enabled, loaded, error, commands}]` |
@@ -97,4 +98,4 @@ O overlay **sempre** devolve o áudio ao parar; quem descarta gravações < 350 
 
 `source`: `dictation` · `import` · `meeting`. Tempos em milissegundos. `obsidianPath` só existe depois de enviar a nota ao Obsidian.
 
-**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyCode`, `hotkeyModifiers`, `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `aiApiKey`, `obsidianVault`, `obsidianFolder`, `obsidianCategories` (uma por linha), `obsidianAutoDetect`, `theme`, `uiLanguage`, `startWithWindows`, `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.
+**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyKeys` (1 a 3 keycodes; `hotkeyCode`/`hotkeyModifiers` antigos são migrados), `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `aiApiKey`, `obsidianVault`, `obsidianFolder`, `obsidianCategories` (uma por linha), `obsidianAutoDetect`, `theme`, `uiLanguage`, `startWithWindows` (padrão `true`; `autostartMigrated` marca a migração única da 0.1.9), `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.
