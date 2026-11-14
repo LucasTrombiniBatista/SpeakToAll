@@ -30,6 +30,7 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `openInObsidian(relPath)` | `obsidian:open` | abre a nota no Obsidian |
 | `captureHotkey()` | `hotkey:capture` | `{label, typing}` (ex.: `"Ctrl+Shift+Space"`; já salvo em `hotkey`/`hotkeyKeys`), `{error:'typing', label}` ou `null` |
 | `cancelHotkeyCapture()` | `hotkey:cancel-capture` | cancela a captura em andamento (a captura também desiste sozinha após 15 s) |
+| `editCommand(cmd)` | `edit:command` | executa `cut`/`copy`/`paste`/`selectAll`/`undo`/`redo` no `webContents` (menu do botão direito) |
 | `previewOverlay(state)` | `overlay:preview` | mostra o overlay no estado pedido |
 | `openExternal(url)` | `open-external` | só `http(s)://` |
 | `listPlugins()` | `plugins:list` | `[{id, manifest, enabled, loaded, error, commands}]` |
