@@ -16,7 +16,7 @@
     sounds: true, saveDictationNotes: true, saveAudio: false,
     aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
     obsidianVault: 'C:\\Users\\voce\\Obsidian\\Notas', obsidianFolder: 'SpeakToAll', obsidianCategories: 'Trabalho/Reuniões\nIdeias', obsidianAutoDetect: true,
-    startWithWindows: false, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: true,
+    startWithWindows: true, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: true,
     enabledPlugins: ['maiuscula-inicial'], restrictedMode: false,
   };
   const plugins = [

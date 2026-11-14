@@ -11,7 +11,7 @@ const DEFAULTS = {
   sounds: true, saveDictationNotes: true, saveAudio: false,
   aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
   obsidianVault: '', obsidianFolder: 'SpeakToAll', obsidianCategories: '', obsidianAutoDetect: true,
-  startWithWindows: false, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: false,
+  startWithWindows: true, closeToTray: true, autoCheckUpdates: true, theme: 'system', onboarded: false,
   windowMode: 'windowed', // windowed | maximized | fullscreen
   hotkeyCode: 67,
   hotkeyModifiers: { ctrl: false, alt: false, shift: false, meta: false },
@@ -47,6 +47,13 @@ class Config extends EventEmitter {
     let saved = {};
     try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')) || {}; } catch {}
     this.settings = { ...clone(DEFAULTS), ...saved };
+    // Até a 0.1.8 o padrão era desligado e ficava gravado no settings.json; liga uma vez para quem
+    // já tinha o app. Quem desligar depois disso continua desligado.
+    if (!this.settings.autostartMigrated) {
+      this.settings.startWithWindows = true;
+      this.settings.autostartMigrated = true;
+      if (Object.keys(saved).length) try { writeAtomic(this.file, JSON.stringify(this.settings, null, 2)); } catch {}
+    }
     if (this.settings.pluginCatalogUrl === OLD_CATALOG_URL) this.settings.pluginCatalogUrl = DEFAULTS.pluginCatalogUrl;
     return this.get();
   }

@@ -195,6 +195,13 @@ app.on('before-quit', () => {
 });
 app.on('window-all-closed', () => app.quit());
 
+const HIDDEN_ARG = '--hidden';
+// Registra (ou remove) o app na inicialização do Windows. No `npm start` não registra o electron.exe.
+function syncLoginItem(on) {
+  if (!app.isPackaged) return;
+  app.setLoginItemSettings({ openAtLogin: !!on, args: [HIDDEN_ARG] });
+}
+
 app.whenReady().then(async () => {
   const d = dirs();
   config.init(d.base);
@@ -221,7 +228,13 @@ app.whenReady().then(async () => {
   registerIpc(d);
   windows.setupMedia();
   windows.setTheme(config.get().theme);
-  windows.createMain({ closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode });
+  // Aberto pelo login do Windows, já configurado: começa só na bandeja.
+  const atLogin = process.argv.includes(HIDDEN_ARG) || app.getLoginItemSettings().wasOpenedAtLogin;
+  windows.createMain({
+    closeToTray: () => config.get().closeToTray, windowMode: () => config.get().windowMode,
+    startHidden: atLogin && config.get().onboarded,
+  });
+  syncLoginItem(config.get().startWithWindows);
   windows.createOverlay();
   i18n.load(config.get().uiLanguage);
 
@@ -257,7 +270,7 @@ app.whenReady().then(async () => {
     if (keys.includes('theme')) windows.setTheme(s.theme);
     if (keys.includes('windowMode')) windows.setWindowMode(s.windowMode);
     if (keys.includes('autoCheckUpdates')) updater.schedule(s.autoCheckUpdates);
-    if (keys.includes('startWithWindows')) app.setLoginItemSettings({ openAtLogin: s.startWithWindows });
+    if (keys.includes('startWithWindows')) syncLoginItem(s.startWithWindows);
   });
 
   injector.start();
