@@ -202,6 +202,11 @@ class Hotkeys extends EventEmitter {
     });
   }
 
+  // Cancela a captura em andamento (clicar de novo no botão, tempo esgotado).
+  cancelCapture() {
+    if (this._capture) this._finishCapture(null);
+  }
+
   _finishCapture(result) {
     const c = this._capture;
     this._capture = null;

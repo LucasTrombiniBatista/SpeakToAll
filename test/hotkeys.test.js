@@ -103,6 +103,19 @@ test('captura recusa uma tecla que digita sozinha e aceita F9 sozinha', async ()
   assert.deepStrictEqual((await p).keys, [K.F9]);
 });
 
+test('nova captura ou cancelamento encerram a captura pendente com null', async () => {
+  fresh([K.F9]);
+  const first = hotkeys.captureNext();
+  const second = hotkeys.captureNext(); // clicou de novo sem apertar nada
+  assert.strictEqual(await first, null);
+  hotkeys.cancelCapture();
+  assert.strictEqual(await second, null);
+  assert.strictEqual(hotkeys._capture, null);
+  const third = hotkeys.captureNext();
+  down(K.Ctrl); down(K.D); up(K.D); up(K.Ctrl);
+  assert.deepStrictEqual((await third).keys, [K.Ctrl, K.D]);
+});
+
 test('formato antigo vira lista de teclas', () => {
   assert.deepStrictEqual(hotkeys.keysFromLegacy(K.F9, { ctrl: true, shift: true }), [K.Ctrl, K.Shift, K.F9]);
   assert.deepStrictEqual(hotkeys.keysFromLegacy(K.Ctrl, { ctrl: true }), [K.Ctrl]);

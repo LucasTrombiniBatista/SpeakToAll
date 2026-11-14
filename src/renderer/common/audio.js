@@ -109,11 +109,12 @@
     return { stream, fellBack: true };
   }
 
-  // Barras de nível com movimento contínuo. Os níveis chegam a cada ~128 ms (um bloco do worklet);
-  // entre um e outro, cada barra persegue o alvo (sobe rápido, desce devagar) e a fila desliza
-  // para a esquerda, em vez de pular uma barra por bloco. O estado fica por canvas.
+  // Barras de nível com movimento contínuo. Os níveis chegam a cada ~128 ms (um bloco do worklet).
+  // A posição da fila (`head`, em barras) persegue a quantidade de níveis sem nunca voltar para trás,
+  // e cada barra persegue a própria altura (sobe rápido, desce devagar). Antes a fila deslizava e
+  // dava um tranco de volta a cada bloco, o que parecia uma tremida. O estado fica por canvas.
   const barState = new WeakMap();
-  const ATTACK_MS = 45, RELEASE_MS = 140, NOISE = 0.004, FULL = 0.13;
+  const ATTACK_MS = 60, RELEASE_MS = 160, SCROLL_MS = 150, NOISE = 0.004, FULL = 0.13;
   function drawBars(canvas, levels, color, { bw = 3, gap = 3, n = 0, minH = 3 } = {}) {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -127,28 +128,25 @@
     const slots = n || Math.floor(w / step);
     const now = performance.now();
     let st = barState.get(canvas);
-    if (!st || levels.length < st.count) st = { disp: [], count: 0, last: now, arrived: now, gap: 128 };
+    if (!st || levels.length < st.count) st = { disp: [], base: 0, count: 0, head: levels.length, last: now };
     barState.set(canvas, st);
-    const dt = Math.min(64, now - st.last); st.last = now;
-    if (levels.length > st.count) {
-      const g = now - st.arrived;
-      if (st.count && g > 20 && g < 500) st.gap += (g - st.gap) * 0.2;
-      st.disp.splice(0, levels.length - st.count);
-      st.count = levels.length; st.arrived = now;
-    }
-    const targets = levels.slice(-(slots + 1));
-    while (st.disp.length < targets.length) st.disp.push(0);
-    st.disp.length = targets.length;
-    const slide = Math.min(1, (now - st.arrived) / st.gap);
-    const m = targets.length;
+    const dt = Math.min(64, Math.max(0, now - st.last)); st.last = now;
+    st.count = levels.length;
+    // Pulo grande (ex.: janela escondida) não vira uma corrida de barras.
+    if (st.count - st.head > slots) st.head = st.count - 1;
+    st.head += (st.count - st.head) * (1 - Math.exp(-dt / SCROLL_MS));
+    const first = Math.max(0, Math.floor(st.head) - slots - 1);
+    if (first > st.base) { st.disp.splice(0, first - st.base); st.base = first; }
+    while (st.base + st.disp.length < st.count) st.disp.push(0);
     ctx.fillStyle = color;
-    for (let i = 0; i < m; i++) {
-      const goal = Math.min(1, Math.sqrt(Math.max(0, targets[i] - NOISE) / FULL));
-      const d = st.disp[i];
-      st.disp[i] = d + (goal - d) * (1 - Math.exp(-dt / (goal > d ? ATTACK_MS : RELEASE_MS)));
-      const x = (slots - m + i + 1 - slide) * step;
+    for (let j = Math.max(st.base, first); j < st.count; j++) {
+      const k = j - st.base;
+      const goal = Math.min(1, Math.sqrt(Math.max(0, levels[j] - NOISE) / FULL));
+      const d = st.disp[k];
+      st.disp[k] = d + (goal - d) * (1 - Math.exp(-dt / (goal > d ? ATTACK_MS : RELEASE_MS)));
+      const x = (slots - (st.head - j)) * step;
       if (x < -bw || x > w) continue;
-      const bh = Math.max(minH, st.disp[i] * h);
+      const bh = Math.max(minH, st.disp[k] * h);
       ctx.beginPath();
       ctx.roundRect(x, (h - bh) / 2, bw, bh, bw / 2);
       ctx.fill();

@@ -147,14 +147,18 @@ function registerIpc(d) {
     if (vault && rel) shell.openExternal(obsidian.openUri(vault, rel));
   });
 
+  ipcMain.handle('hotkey:cancel-capture', () => hotkeys.cancelCapture());
   ipcMain.handle('hotkey:capture', async () => {
     hotkeys.setEnabled(false);
+    // Sem nenhuma tecla em 15 s, desiste (o botão não fica preso em "Pressione…").
+    const timer = setTimeout(() => hotkeys.cancelCapture(), 15000);
     try {
       const res = await hotkeys.captureNext();
       if (!res || res.error) return res;
       config.set({ hotkey: res.label, hotkeyKeys: res.keys });
       return { label: res.label, typing: res.typing };
     } finally {
+      clearTimeout(timer);
       hotkeys.setEnabled(true);
     }
   });

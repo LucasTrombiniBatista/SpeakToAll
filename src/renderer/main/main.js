@@ -556,12 +556,18 @@ async function loadMics() {
 }
 navigator.mediaDevices?.addEventListener?.('devicechange', loadMics);
 
+// Clicar de novo enquanto captura cancela. Antes, o segundo clique abria outra captura e a
+// primeira, ao terminar vazia, restaurava o botão por cima da segunda (ficava "Alterar" capturando).
+let capturingHotkey = false;
 $('#set-hotkey').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
+  if (capturingHotkey) return api.cancelHotkeyCapture();
+  capturingHotkey = true;
   btn.classList.add('capturing');
   $('#set-hotkey-label').textContent = '…';
   btn.lastChild.textContent = t('js.press-key', {}, 'Pressione até 3 teclas');
-  const res = await api.captureHotkey();
+  let res = null;
+  try { res = await api.captureHotkey(); } finally { capturingHotkey = false; }
   btn.classList.remove('capturing');
   btn.lastChild.textContent = t('configuracoes.alterar', {}, 'Alterar');
   // O main já salvou a combinação; aqui só atualiza a tela e avisa sobre teclas que digitam.

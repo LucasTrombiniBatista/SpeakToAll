@@ -165,7 +165,9 @@
       for (const word of reply.split(/(?<= )/)) { emit('ai:chunk', { delta: word }); await wait(40); }
       emit('ai:chunk', { done: true });
     },
+    async cancelHotkeyCapture() { this._cancelCapture?.(); },
     async captureHotkey() { return new Promise((resolve) => {
+      this._cancelCapture = () => { window.removeEventListener('keydown', onKey, true); this._cancelCapture = null; resolve(null); };
       const onKey = (e) => {
         e.preventDefault();
         if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
