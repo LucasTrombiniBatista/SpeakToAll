@@ -559,15 +559,25 @@ navigator.mediaDevices?.addEventListener?.('devicechange', loadMics);
 // Clicar de novo enquanto captura cancela. Antes, o segundo clique abria outra captura e a
 // primeira, ao terminar vazia, restaurava o botão por cima da segunda (ficava "Alterar" capturando).
 let capturingHotkey = false;
+const swallowKey = (e) => { e.preventDefault(); e.stopPropagation(); };
 $('#set-hotkey').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   if (capturingHotkey) return api.cancelHotkeyCapture();
   capturingHotkey = true;
+  // Espaço/Enter num botão focado viram clique (e cancelariam a captura); tira o foco e
+  // engole as teclas na janela enquanto captura. O hook global continua vendo tudo.
+  btn.blur();
+  window.addEventListener('keydown', swallowKey, true);
+  window.addEventListener('keyup', swallowKey, true);
   btn.classList.add('capturing');
   $('#set-hotkey-label').textContent = '…';
   btn.lastChild.textContent = t('js.press-key', {}, 'Pressione até 3 teclas');
   let res = null;
-  try { res = await api.captureHotkey(); } finally { capturingHotkey = false; }
+  try { res = await api.captureHotkey(); } finally {
+    capturingHotkey = false;
+    window.removeEventListener('keydown', swallowKey, true);
+    window.removeEventListener('keyup', swallowKey, true);
+  }
   btn.classList.remove('capturing');
   btn.lastChild.textContent = t('configuracoes.alterar', {}, 'Alterar');
   // O main já salvou a combinação; aqui só atualiza a tela e avisa sobre teclas que digitam.
