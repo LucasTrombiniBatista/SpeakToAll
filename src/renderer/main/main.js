@@ -76,22 +76,7 @@ function dayGroup(ts) {
   return d.toLocaleDateString(locale(), { day: '2-digit', month: 'long' });
 }
 
-function drawBars(canvas, levels, color) {
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  canvas.width = w * dpr; canvas.height = h * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const bw = 4, gap = 3, n = Math.floor(w / (bw + gap));
-  const slice = levels.slice(-n);
-  ctx.fillStyle = color;
-  slice.forEach((lv, i) => {
-    const bh = Math.max(4, Math.min(h, lv * h * 6));
-    ctx.beginPath();
-    ctx.roundRect(i * (bw + gap), (h - bh) / 2, bw, bh, 2);
-    ctx.fill();
-  });
-}
+const drawBars = (canvas, levels, color) => window.staAudio.drawBars(canvas, levels, color, { bw: 4, gap: 3, minH: 4 });
 
 /* ---------- navegação ---------- */
 // Só a view que entra anima (opacity/transform, sem layout); a que sai some na hora.

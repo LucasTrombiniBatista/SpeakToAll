@@ -1,5 +1,5 @@
 // Pílula de gravação. Comandos vindos do main: start, stop, cancel, lock, transcribing, done, error.
-const { createRecorder, openMic, encodeWav, fmtClock, SAMPLE_RATE } = window.staAudio;
+const { createRecorder, openMic, encodeWav, drawBars, fmtClock, SAMPLE_RATE } = window.staAudio;
 const $ = (id) => document.getElementById(id);
 const MIN_MS = 350;
 
@@ -67,21 +67,7 @@ function hide() {
 }
 
 function draw() {
-  const c = $('levels');
-  const dpr = window.devicePixelRatio || 1;
-  c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
-  const ctx = c.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const n = 20, bw = 3, gap = 3, h = c.clientHeight;
-  const slice = levels.slice(-n);
-  ctx.fillStyle = '#FFFFFF';
-  for (let i = 0; i < n; i++) {
-    const lv = slice[i - (n - slice.length)] || 0;
-    const bh = Math.max(3, Math.min(h, lv * h * 7));
-    ctx.beginPath();
-    ctx.roundRect(i * (bw + gap), (h - bh) / 2, bw, bh, 1.5);
-    ctx.fill();
-  }
+  drawBars($('levels'), levels, '#FFFFFF', { bw: 3, gap: 3, n: 20 });
   $('time').textContent = fmtClock(performance.now() - t0, true);
   raf = requestAnimationFrame(draw);
 }

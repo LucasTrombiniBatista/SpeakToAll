@@ -109,6 +109,52 @@
     return { stream, fellBack: true };
   }
 
+  // Barras de nível com movimento contínuo. Os níveis chegam a cada ~128 ms (um bloco do worklet);
+  // entre um e outro, cada barra persegue o alvo (sobe rápido, desce devagar) e a fila desliza
+  // para a esquerda, em vez de pular uma barra por bloco. O estado fica por canvas.
+  const barState = new WeakMap();
+  const ATTACK_MS = 45, RELEASE_MS = 140, NOISE = 0.004, FULL = 0.13;
+  function drawBars(canvas, levels, color, { bw = 3, gap = 3, n = 0, minH = 3 } = {}) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const step = bw + gap;
+    const slots = n || Math.floor(w / step);
+    const now = performance.now();
+    let st = barState.get(canvas);
+    if (!st || levels.length < st.count) st = { disp: [], count: 0, last: now, arrived: now, gap: 128 };
+    barState.set(canvas, st);
+    const dt = Math.min(64, now - st.last); st.last = now;
+    if (levels.length > st.count) {
+      const g = now - st.arrived;
+      if (st.count && g > 20 && g < 500) st.gap += (g - st.gap) * 0.2;
+      st.disp.splice(0, levels.length - st.count);
+      st.count = levels.length; st.arrived = now;
+    }
+    const targets = levels.slice(-(slots + 1));
+    while (st.disp.length < targets.length) st.disp.push(0);
+    st.disp.length = targets.length;
+    const slide = Math.min(1, (now - st.arrived) / st.gap);
+    const m = targets.length;
+    ctx.fillStyle = color;
+    for (let i = 0; i < m; i++) {
+      const goal = Math.min(1, Math.sqrt(Math.max(0, targets[i] - NOISE) / FULL));
+      const d = st.disp[i];
+      st.disp[i] = d + (goal - d) * (1 - Math.exp(-dt / (goal > d ? ATTACK_MS : RELEASE_MS)));
+      const x = (slots - m + i + 1 - slide) * step;
+      if (x < -bw || x > w) continue;
+      const bh = Math.max(minH, st.disp[i] * h);
+      ctx.beginPath();
+      ctx.roundRect(x, (h - bh) / 2, bw, bh, bw / 2);
+      ctx.fill();
+    }
+  }
+
   function fmtClock(ms, withMs = false) {
     const t = Math.max(0, Math.floor(ms));
     const h = Math.floor(t / 3600000), m = Math.floor(t / 60000) % 60, s = Math.floor(t / 1000) % 60;
@@ -117,5 +163,5 @@
     return withMs ? `${base}.${pad(t % 1000, 3)}` : base;
   }
 
-  window.staAudio = { SAMPLE_RATE, encodeWav, concat, rms, fileToWav, createRecorder, openMic, fmtClock };
+  window.staAudio = { SAMPLE_RATE, encodeWav, concat, rms, fileToWav, createRecorder, openMic, drawBars, fmtClock };
 })();
