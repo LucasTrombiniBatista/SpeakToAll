@@ -18,7 +18,7 @@
   <img src="docs/media/ditado.gif" width="760" alt="Holding F9: the pill records, transcribes and the text appears in the editor">
 </p>
 
-A Windows desktop app that transcribes your voice **offline** and types the result into any program. Hold a key (<kbd>F9</kbd> by default), speak, release — the text appears wherever your cursor is and is saved as a note.
+A Windows desktop app that transcribes your voice **offline** and types the result into any program. Hold a key or a combination of up to 3 keys (<kbd>F9</kbd> by default, or e.g. <kbd>Ctrl</kbd>+<kbd>Space</kbd>), speak, release — the text appears wherever your cursor is and is saved as a note.
 
 Stack: Electron + plain JavaScript as the shell, speech recognition by the [whisper.cpp](https://github.com/ggml-org/whisper.cpp) binaries, text injection through Win32 `SendInput`.
 
@@ -74,7 +74,7 @@ Follows Windows or stays fixed; the title bar follows along. In Settings → Win
 
 ## Install
 
-Download `SpeakToAll Setup <version>.exe` from [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). Requirements: Windows 10/11 x64 and ~200 MB free for the engine + `base` model (up to ~600 MB with `large-v3-turbo`).
+Download `SpeakToAll Setup <version>.exe` from [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). The app starts with Windows (in the tray) by default; turn it off in Settings. Requirements: Windows 10/11 x64 and ~200 MB free for the engine + `base` model (up to ~600 MB with `large-v3-turbo`).
 
 **Updates:** new versions download in the background. When ready, a discreet notice appears; on restart (or when you quit the app) the install happens silently, without opening the installer again. Automatic checks can be turned off in Settings.
 

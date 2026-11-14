@@ -7,8 +7,8 @@ Todos CommonJS. Os singletons são `EventEmitter`. Só `main.js`, `windows.js`, 
 ### `main.js`
 Bootstrap: `requestSingleInstanceLock`, inicializa os módulos com os diretórios de `userData`, registra todos os handlers IPC (ver [ipc.md](ipc.md)) e liga eventos dos módulos à UI.
 - Mudança em `model`, `language`, `initialPrompt`, `threads`, `engineFlavor` → reinicia o `whisper-server` (exceto durante instalação).
-- Mudança em `hotkeyCode`, `hotkeyModifiers`, `hotkeyMode`, `tapToLock` → reconfigura `hotkeys`.
-- `startWithWindows` → `app.setLoginItemSettings`.
+- Mudança em `hotkeyKeys`, `hotkeyMode`, `tapToLock` → reconfigura `hotkeys`.
+- `startWithWindows` (padrão ligado) → `app.setLoginItemSettings` com `--hidden`, sincronizado também a cada boot e só no app empacotado. Aberto pelo login e já configurado, o app fica na bandeja.
 
 ### `windows.js`
 Cria a janela principal (fecha para a bandeja se `closeToTray`) e o overlay (`frame:false, transparent, alwaysOnTop, focusable:false, skipTaskbar`). `overlayCommand(cmd)` posiciona o overlay centralizado embaixo da tela do cursor e envia o comando. Configura permissões de mídia e o `setDisplayMediaRequestHandler` com `audio:'loopback'`.
@@ -33,9 +33,11 @@ Cria a janela principal (fecha para a bandeja se `closeToTray`) e o overlay (`fr
 
 ### `hotkeys.js`
 Hook passivo com `uiohook-napi`. Estados `idle → held → locked`.
-- `configure({keycode, modifiers, mode:'hold'|'toggle', tapToLock})`, `start()`, `stop()`, `setEnabled()`, `reset()`.
-- Eventos `start`, `stop`, `lock`, `cancel`. Toque < 350 ms com `tapToLock` trava; nova tecla após 300 ms para. Esc cancela.
-- `captureNext()` → `{label, keycode, modifiers}` (ou `null` com Esc). Helpers `keycodeToLabel`, `comboLabel`. F9 = 67.
+- O atalho é uma lista de 1 a 3 teclas (`hotkeyKeys`). Dispara quando todas estão apertadas e nenhuma outra; no modo segurar, soltar qualquer uma encerra. Lado direito de Ctrl/Alt/Shift/Win conta como o esquerdo.
+- `configure({keys, mode:'hold'|'toggle', tapToLock})` (aceita também o formato antigo `keycode` + `modifiers`), `start()`, `stop()`, `setEnabled()`, `reset()`.
+- Eventos `start`, `stop`, `lock`, `cancel`. Toque < 350 ms com `tapToLock` trava; novo acorde após 300 ms para. Esc cancela.
+- `captureNext()` junta até 3 teclas e termina quando todas são soltas → `{label, keys, typing}`, `{error:'typing'}` para uma tecla que digita sozinha (letra, Espaço) ou `null` com Esc. Helpers `keycodeToLabel`, `keysLabel`, `keysFromLegacy`, `isTyping`. F9 = 67.
+- O hook é passivo: Espaço ou letras no atalho também chegam ao app em foco, por isso a tela avisa.
 
 ### `injector.js` + `injector.ps1`
 PowerShell persistente, protocolo de uma linha por comando, resposta `OK`/`ERR`.
