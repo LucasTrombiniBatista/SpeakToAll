@@ -26,6 +26,13 @@ const engine = new EventEmitter();
 let paths = null;
 let proc = null, port = 0, ready = false, current = { model: null, flavor: null };
 let abort = null;
+let installing = null; // promise da instalação em andamento
+
+// Código de saída do Windows quando o Controle Inteligente de Aplicativos (Smart App Control)
+// ou outra política de integridade bloqueia um .exe sem assinatura (STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION).
+const BLOCKED_BY_POLICY = 0xC0E90002;
+// DLL ausente (STATUS_DLL_NOT_FOUND): no motor CUDA, é o nvcuda.dll do driver da NVIDIA.
+const DLL_NOT_FOUND = 0xC0000135;
 
 function init({ dataDir }) {
   paths = { bin: path.join(dataDir, 'bin', 'whisper'), models: path.join(dataDir, 'models') };
@@ -128,7 +135,16 @@ function expand(zip, dir) {
   });
 }
 
-async function install({ flavor = 'cpu', model }, onProgress) {
+// Uma instalação por vez: uma segunda chamada recebe a mesma promise (o onboarding podia disparar
+// duas, e a segunda apagava os arquivos que a primeira estava usando).
+function install(opts, onProgress) {
+  if (!installing) installing = doInstall(opts, onProgress).finally(() => { installing = null; });
+  return installing;
+}
+const isInstalling = () => !!installing;
+
+async function doInstall({ flavor = 'cpu', model }, onProgress) {
+  console.warn('[engine] install', flavor, model);
   await stopAndWait(); // o Windows trava o .exe em uso
   abort = new AbortController();
   const { signal } = abort;
@@ -149,6 +165,10 @@ async function install({ flavor = 'cpu', model }, onProgress) {
     current = { model, flavor };
     onProgress?.({ stage: 'starting', percent: 100 });
     emitStatus();
+    console.warn('[engine] install ok', flavor, model);
+  } catch (e) {
+    console.warn('[engine] install falhou', flavor, model, e.message);
+    throw e;
   } finally { abort = null; }
 }
 
@@ -184,22 +204,40 @@ const decodeArgs = (s) => (s.transcriptionQuality === 'accurate' ? ['-bs', '5', 
 const joinSegments = (segs) => segs.map((s) => s.raw ?? ` ${s.text ?? ''}`).join('').replace(/\s+/g, ' ').trim();
 
 async function start(settings) {
+  // Durante a instalação os arquivos são apagados e trocados; quem instala sobe o motor no fim.
+  if (installing) throw new Error('Instalação do motor em andamento');
   stop();
   current = { model: settings.model, flavor: installedFlavor() || settings.engineFlavor };
   const exe = findExe('whisper-server.exe');
   const m = modelPath(settings.model);
   if (!exe || !fs.existsSync(m)) { emitStatus(); throw new Error('Engine ou modelo não instalado'); }
   port = await freePort();
+  if (installing) throw new Error('Instalação do motor em andamento');
   const args = ['-m', m, '--host', '127.0.0.1', '--port', String(port), '-t', String(threadsFor(settings)),
     '-l', settings.language || 'auto', ...decodeArgs(settings), '-sow'];
   if (settings.initialPrompt) args.push('--prompt', settings.initialPrompt);
   const p = spawn(exe, args, { cwd: path.dirname(exe), windowsHide: true, stdio: 'ignore' });
   proc = p;
-  p.on('exit', () => { if (proc === p) { proc = null; ready = false; emitStatus(); } });
+  let exitCode = null;
+  // Sem este handler, um spawn que falha (ENOENT) derruba o processo principal.
+  p.on('error', (err) => { exitCode = err.code; if (proc === p) { proc = null; ready = false; emitStatus(); } });
+  p.on('exit', (code) => { exitCode = code >>> 0; if (proc === p) { proc = null; ready = false; emitStatus(); } });
   emitStatus();
   const deadline = Date.now() + 120000;
   while (Date.now() < deadline) {
-    if (proc !== p) throw new Error('whisper-server encerrou');
+    if (proc !== p) {
+      if (exitCode === BLOCKED_BY_POLICY) {
+        const err = new Error('O Windows bloqueou o motor (Controle Inteligente de Aplicativos). Veja a solução de problemas na documentação.');
+        err.code = 'BLOCKED_BY_POLICY';
+        throw err;
+      }
+      if (exitCode === DLL_NOT_FOUND && current.flavor === 'cuda') {
+        const err = new Error('Driver da NVIDIA não encontrado. Instale o driver da placa ou use o motor CPU.');
+        err.code = 'NO_NVIDIA_DRIVER';
+        throw err;
+      }
+      throw new Error(`whisper-server encerrou${exitCode != null ? ` (código ${exitCode})` : ''}`);
+    }
     if (await canConnect(port)) { ready = true; emitStatus(); return status(); }
     await new Promise((r) => setTimeout(r, 300));
   }
@@ -319,7 +357,7 @@ function cleanTranscript(text) {
 process.on('exit', () => { try { proc?.kill(); } catch {} });
 
 Object.assign(engine, {
-  MODELS, init, detectHardware, install, cancel, start, stop, status,
+  MODELS, init, detectHardware, install, isInstalling, BLOCKED_BY_POLICY, cancel, start, stop, status,
   transcribe, transcribeFile, postProcess, cleanTranscript, joinSegments, threadsFor,
 });
 module.exports = engine;

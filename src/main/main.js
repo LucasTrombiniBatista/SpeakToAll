@@ -65,6 +65,7 @@ function registerIpc(d) {
   ipcMain.handle('engine:status', () => engine.status());
   ipcMain.handle('engine:hardware', () => engine.detectHardware());
   ipcMain.handle('engine:install', async (_e, { flavor, model }) => {
+    if (installing) throw new Error('Uma instalação já está em andamento');
     installing = true;
     try {
       await engine.install({ flavor, model }, (p) => windows.send('engine:progress', p));
