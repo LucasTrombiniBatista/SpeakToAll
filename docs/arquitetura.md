@@ -1,6 +1,6 @@
 # Arquitetura
 
-O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários prontos baixados na primeira execução); o app orquestra tudo por processos filhos e HTTP local em `127.0.0.1`.
+O Electron é só a casca. Quem reconhece a voz é o **[faster-whisper](https://github.com/SYSTRAN/faster-whisper)** (CTranslate2), rodando num Python embutido baixado na primeira execução; o app orquestra tudo por processos filhos e HTTP local em `127.0.0.1`.
 
 ```
 ┌──────────────────────────── Processo MAIN (Node/Electron) ────────────────────────────┐
@@ -15,8 +15,8 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 │  │ getUserMedia → AudioWorklet (PCM) → encodeWav → pílula com barras  │                 │
 │  └────────────────────────────────────────────────────────────────────┘                 │
 │       ▼                                                                                │
-│  engine.js ── POST /inference ──► whisper-server.exe (modelo carregado, porta livre)     │
-│       │      └─ arquivos longos ─► whisper-cli.exe (stdout em streaming)                │
+│  engine.js ── POST /inference ──► python server.py (modelo carregado, porta livre)      │
+│       │      └─ arquivos longos ─► python server.py --file (stdout em streaming)        │
 │       ▼                                                                                │
 │  cleanTranscript + postProcess (tags de silêncio, uma linha, OpenCC p/ chinês)           │
 │       ▼                                                                                │
@@ -38,8 +38,8 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 | Processo main | `src/main/main.js` | Instância única, inicializa módulos, registra IPC |
 | Janela principal | `src/renderer/main/` | Notas, importação, reunião, configurações, onboarding |
 | Janela overlay | `src/renderer/overlay/` | Captura o microfone e mostra a pílula de gravação. Transparente (`backgroundColor: #00000000`, 360x110 para a sombra caber), sempre no topo, **sem foco**; só aparece depois do primeiro carregamento para não piscar um retângulo preto no Windows |
-| `whisper-server.exe` | processo filho | Mantém o modelo na memória → ditado quase instantâneo. Flags: `-t` = núcleos físicos (máx. 8), `-sow` (só quebra segmentos entre palavras), `-bs 1` no modo **Rápido** ou `-bs 5 -bo 5` no **Preciso** (`transcriptionQuality`) |
-| `whisper-cli.exe` | processo filho (sob demanda) | Arquivos longos, com progresso e segmentos em streaming |
+| `python.exe server.py` | processo filho | faster-whisper (CPU, int8) com o modelo na memória → ditado quase instantâneo. `--threads` = núcleos físicos (máx. 8), `--beam 1` no modo **Rápido** ou `--beam 5` no **Preciso** (`transcriptionQuality`) |
+| `python.exe server.py --file` | processo filho (sob demanda) | Arquivos longos (importação, reunião), com progresso e segmentos em streaming |
 | `powershell.exe` | processo filho persistente | Executa `SendInput` (Ctrl+V ou digitação Unicode) |
 
 ## Fluxo de um ditado
@@ -58,7 +58,7 @@ O Electron é só a casca. Quem reconhece a voz é o **whisper.cpp** (binários 
 
 ## Importação e reunião
 
-- **Importar**: o renderer decodifica o arquivo (`decodeAudioData`), reamostra para 16 kHz mono com `OfflineAudioContext` e envia o WAV → `jobs.enqueue` → `whisper-cli`. A nota é criada logo no início e recebe segmentos a cada ~4 s.
+- **Importar**: o renderer decodifica o arquivo (`decodeAudioData`), reamostra para 16 kHz mono com `OfflineAudioContext` e envia o WAV → `jobs.enqueue` → `server.py --file`. A nota é criada logo no início e recebe segmentos a cada ~4 s.
 - **Reunião**: `getDisplayMedia` com `audio:'loopback'` (WASAPI do Windows = som do sistema) + microfone opcional, ligados ao **mesmo** AudioWorklet (o Web Audio soma as fontes). Limite de 4 h. Ao parar, vira job com áudio preservado.
 
 ## Onde ficam os dados
@@ -70,8 +70,8 @@ Tudo em `%APPDATA%\speaktoall\`:
 | `settings.json` | Configurações (merge sobre `DEFAULTS` de `config.js`) |
 | `notes/<id>.json` | Uma nota por arquivo |
 | `audio/` | WAVs guardados (reuniões, ditados com `saveAudio`) |
-| `bin/whisper/` | Binários do whisper.cpp + `flavor.txt` (cpu/cuda) |
-| `models/ggml-<id>.bin` | Modelos baixados do Hugging Face |
+| `bin/fw/` | Runtime do motor: Python embutido, faster-whisper, `server.py` e `VERSION` |
+| `models/fw-<id>/` | Modelos CTranslate2 baixados do Hugging Face (`model.bin`, `config.json`, tokenizer, vocabulário) |
 | `tmp/` | WAVs temporários de jobs |
 | `plugins/<id>/` | Plugins instalados (ver [plugins.md](plugins.md)) |
 | `plugin-data/<id>.json` | Dados salvos por cada plugin |
@@ -93,8 +93,10 @@ Notas enviadas ao Obsidian são gravadas na pasta escolhida pelo usuário (de pr
 - **Volume cai quando o Discord está em call**: em *Painel de Som → Comunicações*, escolha **"Não fazer nada"**.
 - **Gravou o mic errado**: o mic escolhido não foi encontrado (id mudou ao trocar de porta USB). Escolha de novo em Configurações.
 
-## Solução de problemas: motor (whisper.cpp)
+## Solução de problemas: motor
 
-- **"O Windows bloqueou o motor (Controle Inteligente de Aplicativos)"**: no Windows 11 com o *Smart App Control* ligado, executáveis sem assinatura digital e sem reputação, como o `whisper-server.exe` baixado do GitHub, são bloqueados (código de saída `0xC0E90002`). Não existe exceção por app: a alternativa é desligar o recurso em *Segurança do Windows → Controle de aplicativo e navegador → Controle Inteligente de Aplicativos*. Esse desligamento não tem volta sem reinstalar o Windows. A solução definitiva, para o projeto, é distribuir binários assinados.
-- **"Driver da NVIDIA não encontrado"**: o motor CUDA precisa do `nvcuda.dll`, que vem com o driver da NVIDIA (código `0xC0000135`). Sem placa NVIDIA, use o motor CPU. O onboarding avisa quando nenhuma placa é detectada.
-- **Instalação concorrente**: só existe uma instalação por vez (`engine.install` devolve a mesma promise), e `engine.start` recusa subir o motor durante a instalação. Antes, o onboarding salvava `engineFlavor` antes de instalar, o que reiniciava o motor e travava os arquivos no meio do download.
+- **Por que faster-whisper e não whisper.cpp**: até a 0.1.11 o motor era o `whisper-server.exe` do whisper.cpp. No Windows 11 com o *Controle Inteligente de Aplicativos* (Smart App Control) ligado, executáveis sem assinatura e sem reputação são bloqueados (código de saída `0xC0E90002`), e o ditado parava. O `python.exe` oficial é assinado pela Python Software Foundation e o `ctranslate2.dll` é liberado pela reputação do arquivo, por isso as versões do runtime são fixas (ver [desenvolvimento.md](desenvolvimento.md#runtime-do-motor-faster-whisper)). Ao atualizar, o app apaga `bin/whisper/` e os `models/ggml-*.bin` antigos e pede para baixar o motor novo.
+- **"O Windows bloqueou o motor (Controle Inteligente de Aplicativos)"**: não deveria acontecer com o runtime atual. Se aparecer depois de mudar as versões em `scripts/fw-runtime/requirements.txt`, alguma DLL nova ainda não tem reputação: volte para as versões anteriores.
+- **Só CPU**: o motor roda na CPU (int8). No modelo `small`, ~1,8 s para 7,6 s de áudio num notebook de 4 núcleos; o `large-v3-turbo` leva quase o tempo do próprio áudio.
+- **Download com antivírus que inspeciona HTTPS**: o fetch do Node soma as raízes do Windows às padrão (`tls.setDefaultCACertificates`); se ainda recusar o certificado, cai na rede do Chromium (`net.fetch`, bem mais lenta).
+- **Instalação concorrente**: só existe uma instalação por vez (`engine.install` devolve a mesma promise), e `engine.start` recusa subir o motor durante a instalação.

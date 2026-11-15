@@ -20,7 +20,7 @@
 
 A Windows desktop app that transcribes your voice **offline** and types the result into any program. Hold a key or a combination of up to 3 keys (<kbd>F9</kbd> by default, or e.g. <kbd>Ctrl</kbd>+<kbd>Space</kbd>), speak, release — the text appears wherever your cursor is and is saved as a note.
 
-Stack: Electron + plain JavaScript as the shell, speech recognition by the [whisper.cpp](https://github.com/ggml-org/whisper.cpp) binaries, text injection through Win32 `SendInput`.
+Stack: Electron + plain JavaScript as the shell, speech recognition by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) in an embedded Python, text injection through Win32 `SendInput`.
 
 ## Features
 
@@ -87,7 +87,7 @@ npm install
 npm start
 ```
 
-On first run the setup wizard detects your hardware and downloads whisper.cpp and the model to `%APPDATA%\speaktoall`.
+On first run the setup wizard detects your hardware and downloads the speech engine and the model to `%APPDATA%\speaktoall`.
 
 To see just the interface in a browser (no Electron, fake data), open `src/renderer/main/index.html`.
 

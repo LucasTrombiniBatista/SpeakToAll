@@ -1,7 +1,7 @@
-# Publica o runtime do motor reserva (faster-whisper) num Release próprio, marcado como pré-release
+# Publica o runtime do motor (faster-whisper) num Release próprio, marcado como pré-release
 # para o electron-updater não confundir com as versões do app (ele só olha o "latest").
-# Disparo: tag fw-runtime-v* (ex.: fw-runtime-v1). A versão precisa bater com FW_RUNTIME_VERSION em src/main/engine.js.
-name: Runtime do motor reserva
+# Disparo: tag fw-runtime-v* (ex.: fw-runtime-v1). A versão precisa bater com RUNTIME_VERSION em src/main/engine.js.
+name: Runtime do motor
 
 on:
   push:
@@ -34,6 +34,6 @@ jobs:
           if ($LASTEXITCODE) { throw "runtime falhou ($LASTEXITCODE)" }
           Get-Content dist/fw-runtime/t.json
       - name: Publicar
-        run: gh release create "$env:GITHUB_REF_NAME" dist/fw-runtime/sta-fw-runtime-win64.zip --prerelease --title "Runtime do motor reserva $env:GITHUB_REF_NAME" --notes "Python embutido + faster-whisper, baixado pelo app só quando o Windows bloqueia o motor nativo. Não é uma versão do app."
+        run: gh release create "$env:GITHUB_REF_NAME" dist/fw-runtime/sta-fw-runtime-win64.zip --prerelease --title "Runtime do motor $env:GITHUB_REF_NAME" --notes "Python embutido + faster-whisper, baixado pelo app na primeira execução. Não é uma versão do app."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

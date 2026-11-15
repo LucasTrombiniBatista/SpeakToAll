@@ -6,7 +6,7 @@ Todos CommonJS. Os singletons são `EventEmitter`. Só `main.js`, `windows.js`, 
 
 ### `main.js`
 Bootstrap: `requestSingleInstanceLock`, inicializa os módulos com os diretórios de `userData`, registra todos os handlers IPC (ver [ipc.md](ipc.md)) e liga eventos dos módulos à UI.
-- Mudança em `model`, `language`, `initialPrompt`, `threads`, `engineFlavor` → reinicia o `whisper-server` (exceto durante instalação).
+- Mudança em `model`, `language`, `initialPrompt`, `threads`, `transcriptionQuality` → reinicia o motor (exceto durante instalação).
 - Mudança em `hotkeyKeys`, `hotkeyMode`, `tapToLock` → reconfigura `hotkeys`.
 - `startWithWindows` (padrão ligado) → `app.setLoginItemSettings` com `--hidden`, sincronizado também a cada boot e só no app empacotado. Aberto pelo login e já configurado, o app fica na bandeja.
 
@@ -19,16 +19,15 @@ Cria a janela principal (fecha para a bandeja se `closeToTray`) e o overlay (`fr
 ### `engine.js`
 | Função | O que faz |
 |---|---|
-| `init({dataDir})` | Define `bin/whisper`, `bin/fw` (motor reserva) e `models/` |
-| `MODELS` | `tiny`, `base`, `small`, `medium-q5_0`, `large-v3-turbo-q5_0` (recomendado) |
-| `detectHardware()` | CPU/threads, RAM, GPU via `nvidia-smi` → flavor e modelo recomendados |
-| `backendFor(settings)` | `'native'` ou `'fw'`: `engineBackend` força; em `auto`, usa o reserva depois de um bloqueio (`engineFallback: 'fw'`) |
-| `install({flavor, model, backend}, onProgress)` | Uma instalação por vez. `backend: 'fw'` baixa o runtime do Release `fw-runtime-v1` (ou `STA_FW_RUNTIME_ZIP`) para `bin/fw` e o modelo CTranslate2 do Hugging Face para `models/fw-<id>/` (`FW_MODELS`). Nativo: baixa o zip do whisper.cpp v1.8.6 (blas ou cublas-12.4.0) e o modelo (`.part` → rename), extrai com `Expand-Archive`. Progresso a cada 150 ms. Troca de flavor apaga `bin/whisper` |
+| `init({dataDir})` | Define `bin/fw` e `models/`; apaga o whisper.cpp e os modelos ggml de versões antigas |
+| `detectHardware()` | CPU/threads, RAM e GPU (só informativa) → modelo recomendado (`small`, ou `base` em PCs modestos) |
+| `MODELS` | Ids da interface → repositórios CTranslate2 no Hugging Face e tamanhos |
+| `install({model}, onProgress)` | Uma instalação por vez. Baixa o runtime do Release `fw-runtime-v1` (ou `STA_FW_RUNTIME_ZIP`) para `bin/fw` e o modelo para `models/fw-<id>/` (`model.bin` por último, com progresso) |
 | `cancel()` | Aborta o download |
-| `start(settings)` / `stop()` | Sobe `whisper-server.exe` (ou `python server.py` no motor reserva) numa porta livre (greedy no modo rápido, `-bs 5 -bo 5` no preciso), espera aceitar conexões (até 120 s) |
-| `status()` | `{installed, ready, model, flavor, backend}`; emite `'status'` quando muda |
-| `transcribe(wav, {language})` | POST `/inference` (`verbose_json`; no reserva, o WAV cru) → `{text, segments, language}` |
-| `transcribeFile(path, opts, onSegment, onProgress)` | `whisper-cli.exe -oj -pp -np` (no reserva, `server.py --file`, mesma saída), lê `[hh:mm:ss --> ...]` e `progress = N%` do stdout → `{promise, cancel}` |
+| `start(settings)` / `stop()` | Sobe `python server.py` numa porta livre (beam 1 no modo rápido, 5 no preciso) e espera aceitar conexões (até 120 s) |
+| `status()` | `{installed, ready, model}`; emite `'status'` quando muda |
+| `transcribe(wav, {language})` | POST `/inference` com o WAV → `{text, segments, language}` |
+| `transcribeFile(path, opts, onSegment, onProgress)` | `python server.py --file`, lê `[hh:mm:ss --> ...]` e `progress = N%` do stdout e o JSON final → `{promise, cancel}` |
 | `cleanTranscript(text)` | Remove tags `[...]` e sons entre parênteses conhecidos, `♪`, junta numa linha |
 | `postProcess(text, lang, variant)` | Chinês: OpenCC (`cn`↔`twp`) + pontuação full-width |
 
