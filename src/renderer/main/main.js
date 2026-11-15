@@ -104,7 +104,8 @@ function renderEngine(st) {
   const pill = $('#engine-status .pill');
   pill.classList.toggle('ok', !!st.ready);
   $('#engine-label').textContent = st.ready ? (st.model || '').replace(/-q5_0$/, '') : st.installed ? t('js.engine-starting', {}, 'iniciando…') : t('js.engine-none', {}, 'sem motor');
-  $('#set-engine-info').textContent = st.ready ? `whisper.cpp · ${st.flavor} · ${st.model}` : t('js.engine-not-installed', {}, 'não instalado');
+  const name = st.backend === 'fw' ? 'faster-whisper' : 'whisper.cpp';
+  $('#set-engine-info').textContent = st.ready ? `${name} · ${st.flavor} · ${st.model}` : t('js.engine-not-installed', {}, 'não instalado');
 }
 $('#engine-status').addEventListener('click', () => showView('settings'));
 
@@ -833,7 +834,7 @@ let obMic = null;
 
 function openOnboarding(step = 0) { $('#onboarding').hidden = false; goStep(step); }
 
-function goStep(n) {
+function goStep(n, { install = true } = {}) {
   obStep = n;
   $$('.ob-step').forEach((s) => (s.hidden = +s.dataset.step !== n));
   $('#ob-steps').innerHTML = Array.from({ length: OB_LAST + 1 }, (_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('');
@@ -841,7 +842,8 @@ function goStep(n) {
   $('#ob-next').textContent = n === 0 ? t('onboarding.comecar', {}, 'Começar') : n === OB_LAST ? t('js.finish', {}, 'Concluir') : n === 1 ? t('js.download', {}, 'Baixar') : t('js.continue', {}, 'Continuar');
   $('#ob-next').disabled = false;
   if (n === 1) { $('#ob-next').disabled = !obHw && !obFlavorTouched; detectHw(); }
-  if (n === 2) runInstall();
+  $('#ob-blocked').hidden = true;
+  if (n === 2 && install) runInstall();
   if (n !== 3) stopMicTest();
 }
 
@@ -873,22 +875,35 @@ $$('#ob-flavor button').forEach((b) => b.addEventListener('click', () => {
   if (obStep === 1) $('#ob-next').disabled = false;
 }));
 
-async function runInstall() {
+// O Windows bloqueou o motor nativo: em vez do erro, oferece o motor reserva (faster-whisper).
+function showBlocked() {
+  $('#ob-dl-status').textContent = '';
+  $('#ob-blocked').hidden = false;
   $('#ob-next').disabled = true;
+  $('#ob-back').style.visibility = 'visible';
+}
+$('#ob-use-fw').addEventListener('click', () => { $('#ob-blocked').hidden = true; runInstall('fw'); });
+
+async function runInstall(backend) {
+  $('#ob-next').disabled = true;
+  $('#ob-blocked').hidden = true;
   $('#ob-model').textContent = settings.model;
+  const fw = backend === 'fw' || (!backend && settings.engineBackend !== 'native' && (settings.engineBackend === 'fw' || settings.engineFallback === 'fw'));
+  $('#ob-engine-name').textContent = fw ? 'faster-whisper' : 'whisper.cpp';
   ['engine', 'model'].forEach((s) => { $(`#ob-p-${s}`).style.width = '0'; $(`#ob-t-${s}`).textContent = '0%'; });
   const off = api.on('engine:progress', ({ stage, percent, totalMb }) => {
     if (stage === 'starting') { $('#ob-dl-status').textContent = t('js.loading-model', {}, 'Carregando modelo na memória…'); return; }
     $(`#ob-p-${stage}`).style.width = `${percent}%`;
     $(`#ob-t-${stage}`).textContent = `${percent}%`;
-    $('#ob-dl-status').textContent = `${stage === 'engine' ? 'whisper.cpp' : settings.model} · ${Math.round((totalMb * percent) / 100)} / ${totalMb} MB`;
+    $('#ob-dl-status').textContent = `${stage === 'engine' ? $('#ob-engine-name').textContent : settings.model} · ${Math.round((totalMb * percent) / 100)} / ${totalMb} MB`;
   });
   // Não salva engineFlavor antes: isso reiniciava o motor no meio da instalação (arquivos travados).
   // O main grava flavor e modelo quando a instalação termina.
   try {
-    await api.installEngine({ flavor: obFlavor, model: settings.model });
+    const res = await api.installEngine({ flavor: obFlavor, model: settings.model, backend });
     settings = await api.getSettings();
     bindSettings();
+    if (res?.blocked) return showBlocked();
     $('#ob-dl-status').textContent = t('onboarding.pronto', {}, 'Pronto.');
     $('#ob-next').disabled = false;
   } catch (err) {
@@ -996,6 +1011,15 @@ window.addEventListener('resize', closeCtxMenu);
   loadMics();
   renderEngine(await api.engineStatus());
   api.on('engine:status', renderEngine);
+  // Bloqueio detectado ao subir o motor (ex.: depois de uma atualização): abre o passo do download
+  // com a oferta do motor reserva, sem baixar nada sozinho.
+  api.on('engine:blocked', async () => {
+    settings = await api.getSettings();
+    if (!$('#onboarding').hidden && obStep === 2) return;
+    $('#onboarding').hidden = false;
+    goStep(2, { install: false });
+    showBlocked();
+  });
   api.on('settings:changed', (s) => { settings = s; });
   api.on('plugins:changed', renderPlugins);
   api.on('plugins:notice', ({ name, message }) => toast(`${name}: ${message}`));

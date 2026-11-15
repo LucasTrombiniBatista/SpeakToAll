@@ -319,6 +319,14 @@
               </select>
             </div>
             <div class="field">
+              <div><strong data-i18n="configuracoes.tipo-de-motor">Tipo de motor</strong><p class="muted" data-i18n="configuracoes.tipo-de-motor-desc">Automático usa o whisper.cpp e troca para o faster-whisper se o Windows bloquear.</p></div>
+              <div class="seg" data-setting="engineBackend">
+                <button data-value="auto" data-i18n="configuracoes.automatico">Automático</button>
+                <button data-value="native">whisper.cpp</button>
+                <button data-value="fw">faster-whisper</button>
+              </div>
+            </div>
+            <div class="field">
               <div><strong data-i18n="configuracoes.processamento">Processamento</strong><p class="muted" data-i18n="configuracoes.cuda-exige-placa-nvidia">CUDA exige placa NVIDIA (download de 439 MB).</p></div>
               <div class="seg" data-setting="engineFlavor">
                 <button data-value="cpu">CPU</button>
@@ -474,10 +482,15 @@
 
       <div class="ob-step" data-step="2" hidden>
         <h2 class="display" data-i18n="onboarding.baixando-o-motor">Baixando o motor</h2>
-        <p class="muted"><span data-i18n="onboarding.modelo-prefixo">whisper.cpp + modelo</span> <span class="mono" id="ob-model"></span>. <span data-i18n="onboarding.so-uma-vez">Só acontece uma vez.</span></p>
+        <p class="muted"><span class="mono" id="ob-engine-name">whisper.cpp</span> <span data-i18n="onboarding.mais-modelo">+ modelo</span> <span class="mono" id="ob-model"></span>. <span data-i18n="onboarding.so-uma-vez">Só acontece uma vez.</span></p>
         <div class="dl"><span data-i18n="onboarding.motor">Motor</span><div class="progress"><i id="ob-p-engine"></i></div><span class="mono muted" id="ob-t-engine">0%</span></div>
         <div class="dl"><span data-i18n="onboarding.modelo">Modelo</span><div class="progress"><i id="ob-p-model"></i></div><span class="mono muted" id="ob-t-model">0%</span></div>
         <p class="mono muted" id="ob-dl-status" data-i18n="onboarding.aguardando">Aguardando…</p>
+        <div class="card ob-blocked" id="ob-blocked" hidden>
+          <strong data-i18n="onboarding.bloqueado-titulo">O Windows bloqueou o motor padrão</strong>
+          <p class="muted" data-i18n="onboarding.bloqueado-texto">O Controle Inteligente de Aplicativos do Windows não deixa o whisper.cpp rodar. Dá para usar o motor alternativo (faster-whisper), também offline: ~96 MB mais o modelo.</p>
+          <button class="btn btn-primary" id="ob-use-fw" data-i18n="onboarding.usar-alternativo">Baixar motor alternativo</button>
+        </div>
       </div>
 
       <div class="ob-step" data-step="3" hidden>

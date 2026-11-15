@@ -20,6 +20,9 @@ input, textarea, [contenteditable], .selectable, .selectable * { user-select: te
 .ctx-menu kbd { font: 500 11px var(--font-mono); color: var(--sta-muted, #888); background: none; border: 0; padding: 0; }
 .ctx-menu hr { border: 0; border-top: 1px solid var(--sta-line); margin: 4px 2px; }
 
+.ob-blocked { margin-top: 16px; padding: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ob-blocked p { margin: 0; }
+
 /* Sidebar */
 .sidebar {
   display: flex; flex-direction: column; gap: 24px; padding: 20px 14px;
