@@ -126,6 +126,19 @@ O ícone do instalador, desinstalador e executável é `build/icon.ico`, gerado 
 
 Limitação atual: o instalador não é assinado (o SmartScreen mostra "editor desconhecido" na primeira instalação).
 
+## Runtime do motor reserva (faster-whisper)
+
+Quando o Windows bloqueia o `whisper-server.exe` (Controle Inteligente de Aplicativos, veja [arquitetura.md](arquitetura.md#solução-de-problemas-motor-whispercpp)), o app usa um motor reserva: o [faster-whisper](https://github.com/SYSTRAN/faster-whisper) rodando num Python embutido. O `python.exe` oficial é assinado, e o `ctranslate2.dll` é liberado pela reputação do arquivo.
+
+- `src/main/fw/server.py`: servidor local (`/health`, `/inference`) e modo arquivo (`--file`), que falam o mesmo formato do `whisper-server`/`whisper-cli`.
+- `scripts/fw-runtime/build.ps1`: monta `sta-fw-runtime-win64.zip` (~96 MB), com o Python embutido 3.12, as dependências de `scripts/fw-runtime/requirements.txt` (versões **fixas**), o `server.py` e um `VERSION`.
+- Publicar: `git tag fw-runtime-vN && git push origin fw-runtime-vN`. O workflow `.github/workflows/fw-runtime.yml` monta o pacote, faz um teste com o modelo `tiny` e cria um **pré-release** (o electron-updater ignora pré-releases). Depois, suba `FW_RUNTIME_VERSION` em `src/main/engine.js`, e o app baixa o pacote novo uma vez.
+- Antes de mudar qualquer versão em `requirements.txt`, teste num PC com o Controle Inteligente de Aplicativos ligado: um hash novo pode não ter reputação e ser bloqueado.
+
+```powershell
+powershell -File scripts/fw-runtime/build.ps1 -Out dist/fw-runtime   # monta localmente
+```
+
 ## Testes automatizados
 
 ```bash
