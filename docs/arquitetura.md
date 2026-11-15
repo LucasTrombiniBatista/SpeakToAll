@@ -92,3 +92,9 @@ Notas enviadas ao Obsidian são gravadas na pasta escolhida pelo usuário (de pr
 - **Funciona sozinho, mas não com o Discord/Teams aberto**: o SpeakToAll já tenta abrir o mic sem o processamento do Chromium. Se ainda falhar, abra *Painel de Som → Gravação → (seu mic) → Propriedades → Avançado* e desmarque **"Permitir que aplicativos assumam o controle exclusivo deste dispositivo"**.
 - **Volume cai quando o Discord está em call**: em *Painel de Som → Comunicações*, escolha **"Não fazer nada"**.
 - **Gravou o mic errado**: o mic escolhido não foi encontrado (id mudou ao trocar de porta USB). Escolha de novo em Configurações.
+
+## Solução de problemas: motor (whisper.cpp)
+
+- **"O Windows bloqueou o motor (Controle Inteligente de Aplicativos)"**: no Windows 11 com o *Smart App Control* ligado, executáveis sem assinatura digital e sem reputação, como o `whisper-server.exe` baixado do GitHub, são bloqueados (código de saída `0xC0E90002`). Não existe exceção por app: a alternativa é desligar o recurso em *Segurança do Windows → Controle de aplicativo e navegador → Controle Inteligente de Aplicativos*. Esse desligamento não tem volta sem reinstalar o Windows. A solução definitiva, para o projeto, é distribuir binários assinados.
+- **"Driver da NVIDIA não encontrado"**: o motor CUDA precisa do `nvcuda.dll`, que vem com o driver da NVIDIA (código `0xC0000135`). Sem placa NVIDIA, use o motor CPU. O onboarding avisa quando nenhuma placa é detectada.
+- **Instalação concorrente**: só existe uma instalação por vez (`engine.install` devolve a mesma promise), e `engine.start` recusa subir o motor durante a instalação. Antes, o onboarding salvava `engineFlavor` antes de instalar, o que reiniciava o motor e travava os arquivos no meio do download.
