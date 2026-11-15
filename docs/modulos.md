@@ -19,15 +19,16 @@ Cria a janela principal (fecha para a bandeja se `closeToTray`) e o overlay (`fr
 ### `engine.js`
 | Função | O que faz |
 |---|---|
-| `init({dataDir})` | Define `bin/whisper` e `models/` |
+| `init({dataDir})` | Define `bin/whisper`, `bin/fw` (motor reserva) e `models/` |
 | `MODELS` | `tiny`, `base`, `small`, `medium-q5_0`, `large-v3-turbo-q5_0` (recomendado) |
 | `detectHardware()` | CPU/threads, RAM, GPU via `nvidia-smi` → flavor e modelo recomendados |
-| `install({flavor, model}, onProgress)` | Baixa o zip do whisper.cpp v1.8.6 (blas ou cublas-12.4.0) e o modelo (`.part` → rename), extrai com `Expand-Archive`. Progresso a cada 150 ms. Troca de flavor apaga `bin/whisper` |
+| `backendFor(settings)` | `'native'` ou `'fw'`: `engineBackend` força; em `auto`, usa o reserva depois de um bloqueio (`engineFallback: 'fw'`) |
+| `install({flavor, model, backend}, onProgress)` | Uma instalação por vez. `backend: 'fw'` baixa o runtime do Release `fw-runtime-v1` (ou `STA_FW_RUNTIME_ZIP`) para `bin/fw` e o modelo CTranslate2 do Hugging Face para `models/fw-<id>/` (`FW_MODELS`). Nativo: baixa o zip do whisper.cpp v1.8.6 (blas ou cublas-12.4.0) e o modelo (`.part` → rename), extrai com `Expand-Archive`. Progresso a cada 150 ms. Troca de flavor apaga `bin/whisper` |
 | `cancel()` | Aborta o download |
-| `start(settings)` / `stop()` | Sobe `whisper-server.exe` numa porta livre (greedy no modo rápido, `-bs 5 -bo 5` no preciso), espera aceitar conexões (até 120 s) |
-| `status()` | `{installed, ready, model, flavor}`; emite `'status'` quando muda |
-| `transcribe(wav, {language})` | POST `/inference` (`verbose_json`) → `{text, segments, language}` |
-| `transcribeFile(path, opts, onSegment, onProgress)` | `whisper-cli.exe -oj -pp -np`, lê `[hh:mm:ss --> ...]` e `progress = N%` do stdout → `{promise, cancel}` |
+| `start(settings)` / `stop()` | Sobe `whisper-server.exe` (ou `python server.py` no motor reserva) numa porta livre (greedy no modo rápido, `-bs 5 -bo 5` no preciso), espera aceitar conexões (até 120 s) |
+| `status()` | `{installed, ready, model, flavor, backend}`; emite `'status'` quando muda |
+| `transcribe(wav, {language})` | POST `/inference` (`verbose_json`; no reserva, o WAV cru) → `{text, segments, language}` |
+| `transcribeFile(path, opts, onSegment, onProgress)` | `whisper-cli.exe -oj -pp -np` (no reserva, `server.py --file`, mesma saída), lê `[hh:mm:ss --> ...]` e `progress = N%` do stdout → `{promise, cancel}` |
 | `cleanTranscript(text)` | Remove tags `[...]` e sons entre parênteses conhecidos, `♪`, junta numa linha |
 | `postProcess(text, lang, variant)` | Chinês: OpenCC (`cn`↔`twp`) + pontuação full-width |
 

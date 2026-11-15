@@ -47,3 +47,17 @@ test('install em andamento: segunda chamada reaproveita a mesma e start() recusa
 test('código de bloqueio do Windows é o STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION', () => {
   assert.strictEqual(require('../src/main/engine').BLOCKED_BY_POLICY, 3236495362);
 });
+
+test('backendFor: automático usa o nativo até um bloqueio; forçar ignora o fallback', () => {
+  const { backendFor } = require('../src/main/engine');
+  assert.strictEqual(backendFor({ engineBackend: 'auto', engineFallback: '' }), 'native');
+  assert.strictEqual(backendFor({ engineBackend: 'auto', engineFallback: 'fw' }), 'fw');
+  assert.strictEqual(backendFor({ engineBackend: 'native', engineFallback: 'fw' }), 'native');
+  assert.strictEqual(backendFor({ engineBackend: 'fw' }), 'fw');
+  assert.strictEqual(backendFor({}), 'native');
+});
+
+test('todo modelo da interface tem versão para o motor reserva', () => {
+  const { MODELS, FW_MODELS } = require('../src/main/engine');
+  for (const m of MODELS) assert.ok(FW_MODELS[m.id]?.repo, m.id);
+});

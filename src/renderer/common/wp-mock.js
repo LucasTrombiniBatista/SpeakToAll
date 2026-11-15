@@ -11,7 +11,7 @@
 
   let settings = {
     uiLanguage: 'pt-BR', hotkey: 'F9', hotkeyMode: 'hold', tapToLock: true,
-    language: 'pt', model: 'large-v3-turbo-q5_0', engineFlavor: 'cpu', micDevice: 'default',
+    language: 'pt', model: 'large-v3-turbo-q5_0', engineFlavor: 'cpu', engineBackend: 'auto', engineFallback: '', micDevice: 'default',
     initialPrompt: 'Olá, tudo bem? Vamos começar.', injectMode: 'paste',
     sounds: true, saveDictationNotes: true, saveAudio: false,
     aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
