@@ -1,0 +1,28 @@
+# Motor reserva (faster-whisper) — versões FIXAS de propósito.
+# O Windows (Controle Inteligente de Aplicativos) libera o ctranslate2.dll, que não é assinado,
+# pela reputação do arquivo. Uma versão nova tem outro hash e pode ser bloqueada: só atualize
+# depois de testar num PC com o recurso ligado, e suba FW_RUNTIME_VERSION em src/main/engine.js.
+faster-whisper==1.2.1
+ctranslate2==4.9.0
+tokenizers==0.23.3
+numpy==2.5.4
+av==19.0.2
+onnxruntime==1.32.0
+huggingface_hub==2.4.0
+anyio==4.16.0
+click==8.5.1
+colorama==0.4.6
+filelock==4.2.10
+flatbuffers==25.12.19
+fsspec==2026.9.0
+h11==0.16.0
+hf_xet==1.8.0
+httpcore2==2.16.0
+httpx2==2.16.0
+idna==3.20
+packaging==26.3
+protobuf==7.36.2
+pyyaml==6.0.3
+tqdm==4.70.1
+truststore==0.10.5
+typing_extensions==4.16.0

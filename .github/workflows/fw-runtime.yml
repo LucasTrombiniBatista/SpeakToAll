@@ -1,0 +1,39 @@
+# Publica o runtime do motor reserva (faster-whisper) num Release próprio, marcado como pré-release
+# para o electron-updater não confundir com as versões do app (ele só olha o "latest").
+# Disparo: tag fw-runtime-v* (ex.: fw-runtime-v1). A versão precisa bater com FW_RUNTIME_VERSION em src/main/engine.js.
+name: Runtime do motor reserva
+
+on:
+  push:
+    tags: ['fw-runtime-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Montar runtime
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^fw-runtime-', ''
+          powershell -File scripts/fw-runtime/build.ps1 -Out dist/fw-runtime -Version $version
+      # Teste rápido: o Python embutido carrega o faster-whisper e transcreve um WAV (silêncio) com o modelo tiny.
+      - name: Teste do runtime
+        run: |
+          $m = 'dist/fw-runtime/model-tiny'; New-Item -ItemType Directory $m | Out-Null
+          foreach ($f in 'config.json','model.bin','tokenizer.json','vocabulary.txt') {
+            Invoke-WebRequest -UseBasicParsing "https://huggingface.co/Systran/faster-whisper-tiny/resolve/main/$f" -OutFile "$m/$f"
+          }
+          python -c "import wave; w=wave.open('dist/fw-runtime/t.wav','wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(bytes(32000)); w.close()"
+          dist/fw-runtime/stage/python/python.exe dist/fw-runtime/stage/server.py --model $m --file dist/fw-runtime/t.wav --out dist/fw-runtime/t
+          if ($LASTEXITCODE) { throw "runtime falhou ($LASTEXITCODE)" }
+          Get-Content dist/fw-runtime/t.json
+      - name: Publicar
+        run: gh release create "$env:GITHUB_REF_NAME" dist/fw-runtime/sta-fw-runtime-win64.zip --prerelease --title "Runtime do motor reserva $env:GITHUB_REF_NAME" --notes "Python embutido + faster-whisper, baixado pelo app só quando o Windows bloqueia o motor nativo. Não é uma versão do app."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
