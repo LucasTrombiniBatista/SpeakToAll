@@ -312,26 +312,11 @@
               <div><strong data-i18n="configuracoes.modelo">Modelo</strong><p class="muted" data-i18n="configuracoes.maior-mais-preciso-e">Maior = mais preciso e mais lento.</p></div>
               <select class="select" data-setting="model">
                 <option value="tiny">tiny · 75 MB</option>
-                <option value="base">base · 142 MB</option>
-                <option value="small">small · 466 MB</option>
-                <option value="medium-q5_0">medium-q5_0 · 539 MB</option>
-                <option value="large-v3-turbo-q5_0" data-i18n="configuracoes.modelo-recomendado">large-v3-turbo-q5_0 · 574 MB (recomendado)</option>
+                <option value="base">base · 145 MB</option>
+                <option value="small" data-i18n="configuracoes.modelo-recomendado">small · 464 MB (recomendado)</option>
+                <option value="medium-q5_0">medium · 1,5 GB</option>
+                <option value="large-v3-turbo-q5_0">large-v3-turbo · 1,6 GB</option>
               </select>
-            </div>
-            <div class="field">
-              <div><strong data-i18n="configuracoes.tipo-de-motor">Tipo de motor</strong><p class="muted" data-i18n="configuracoes.tipo-de-motor-desc">Automático usa o whisper.cpp e troca para o faster-whisper se o Windows bloquear.</p></div>
-              <div class="seg" data-setting="engineBackend">
-                <button data-value="auto" data-i18n="configuracoes.automatico">Automático</button>
-                <button data-value="native">whisper.cpp</button>
-                <button data-value="fw">faster-whisper</button>
-              </div>
-            </div>
-            <div class="field">
-              <div><strong data-i18n="configuracoes.processamento">Processamento</strong><p class="muted" data-i18n="configuracoes.cuda-exige-placa-nvidia">CUDA exige placa NVIDIA (download de 439 MB).</p></div>
-              <div class="seg" data-setting="engineFlavor">
-                <button data-value="cpu">CPU</button>
-                <button data-value="cuda">NVIDIA CUDA</button>
-              </div>
             </div>
             <div class="field">
               <div><strong data-i18n="configuracoes.velocidade">Velocidade</strong><p class="muted" data-i18n="configuracoes.rapido-usa-bem-menos">Rápido usa bem menos CPU. Preciso é 3 a 5x mais lento.</p></div>
@@ -474,23 +459,20 @@
       <div class="ob-step" data-step="1" hidden>
         <h2 class="display" data-i18n="onboarding.seu-hardware">Seu hardware</h2>
         <dl class="hw" id="ob-hw"><dt data-i18n="onboarding.detectando">Detectando…</dt></dl>
-        <div class="choice" id="ob-flavor">
-          <button data-value="cpu"><strong>CPU</strong><span class="muted" data-i18n="onboarding.16-mb-funciona-em">16 MB · funciona em qualquer PC</span></button>
-          <button data-value="cuda"><strong>NVIDIA CUDA</strong><span class="muted" data-i18n="onboarding.439-mb-bem-mais">439 MB · bem mais rápido</span></button>
+        <p class="muted" id="ob-upgrade-note" data-i18n="onboarding.troca-de-motor" hidden>O SpeakToAll trocou de motor de reconhecimento. Escolha o modelo para baixar de novo.</p>
+        <div class="choice" id="ob-model-choice">
+          <button data-value="base"><strong>base</strong><span class="muted" data-i18n="onboarding.modelo-base">145 MB · o mais leve, para PCs modestos</span></button>
+          <button data-value="small"><strong>small</strong><span class="muted" data-i18n="onboarding.modelo-small">464 MB · rápido e preciso no dia a dia</span></button>
+          <button data-value="large-v3-turbo-q5_0"><strong>large-v3-turbo</strong><span class="muted" data-i18n="onboarding.modelo-turbo">1,6 GB · o mais preciso, mais lento na CPU</span></button>
         </div>
       </div>
 
       <div class="ob-step" data-step="2" hidden>
         <h2 class="display" data-i18n="onboarding.baixando-o-motor">Baixando o motor</h2>
-        <p class="muted"><span class="mono" id="ob-engine-name">whisper.cpp</span> <span data-i18n="onboarding.mais-modelo">+ modelo</span> <span class="mono" id="ob-model"></span>. <span data-i18n="onboarding.so-uma-vez">Só acontece uma vez.</span></p>
+        <p class="muted"><span class="mono">faster-whisper</span> <span data-i18n="onboarding.mais-modelo">+ modelo</span> <span class="mono" id="ob-model"></span>. <span data-i18n="onboarding.so-uma-vez">Só acontece uma vez.</span></p>
         <div class="dl"><span data-i18n="onboarding.motor">Motor</span><div class="progress"><i id="ob-p-engine"></i></div><span class="mono muted" id="ob-t-engine">0%</span></div>
         <div class="dl"><span data-i18n="onboarding.modelo">Modelo</span><div class="progress"><i id="ob-p-model"></i></div><span class="mono muted" id="ob-t-model">0%</span></div>
         <p class="mono muted" id="ob-dl-status" data-i18n="onboarding.aguardando">Aguardando…</p>
-        <div class="card ob-blocked" id="ob-blocked" hidden>
-          <strong data-i18n="onboarding.bloqueado-titulo">O Windows bloqueou o motor padrão</strong>
-          <p class="muted" data-i18n="onboarding.bloqueado-texto">O Controle Inteligente de Aplicativos do Windows não deixa o whisper.cpp rodar. Dá para usar o motor alternativo (faster-whisper), também offline: ~96 MB mais o modelo.</p>
-          <button class="btn btn-primary" id="ob-use-fw" data-i18n="onboarding.usar-alternativo">Baixar motor alternativo</button>
-        </div>
       </div>
 
       <div class="ob-step" data-step="3" hidden>

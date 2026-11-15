@@ -1,5 +1,10 @@
-// Motor de reconhecimento: instala whisper.cpp + modelos, mantém o whisper-server "quente"
-// e oferece transcrição curta (HTTP) e longa (whisper-cli).
+// Motor de reconhecimento: faster-whisper (CTranslate2) rodando num Python embutido.
+// Instala o runtime + modelos, mantém o servidor local "quente" para o ditado e transcreve
+// arquivos longos (importação/reunião) num processo à parte.
+//
+// Por que não o whisper.cpp: no Windows 11 com o Controle Inteligente de Aplicativos ligado, o
+// whisper-server.exe (sem assinatura) é bloqueado. O python.exe oficial é assinado e o
+// ctranslate2.dll é liberado pela reputação do arquivo (ver docs/arquitetura.md).
 const { EventEmitter } = require('events');
 const { spawn, execFile } = require('child_process');
 const { pipeline } = require('stream/promises');
@@ -9,108 +14,62 @@ const fs = require('fs');
 const net = require('net');
 const os = require('os');
 
-const VERSION = 'v1.8.6';
-const ZIPS = {
-  cpu: { file: 'whisper-blas-bin-x64.zip', mb: 16 },
-  cuda: { file: 'whisper-cublas-12.4.0-bin-x64.zip', mb: 439 },
-};
+// Runtime publicado pelo workflow fw-runtime.yml; subir a versão faz o app baixá-lo de novo uma vez.
+const RUNTIME_VERSION = 'v1';
+const RUNTIME_URL = `https://github.com/LucasTrombiniBatista/SpeakToAll/releases/download/fw-runtime-${RUNTIME_VERSION}/sta-fw-runtime-win64.zip`;
+const RUNTIME_MB = 96;
+
+// Os ids continuam os de antes (ficam salvos em settings.json); os arquivos são CTranslate2.
 const MODELS = [
-  { id: 'tiny', sizeMb: 75 },
-  { id: 'base', sizeMb: 142 },
-  { id: 'small', sizeMb: 466 },
-  { id: 'medium-q5_0', sizeMb: 514 },
-  { id: 'large-v3-turbo-q5_0', sizeMb: 547, recommended: true },
+  { id: 'tiny', repo: 'Systran/faster-whisper-tiny', sizeMb: 75 },
+  { id: 'base', repo: 'Systran/faster-whisper-base', sizeMb: 145 },
+  { id: 'small', repo: 'Systran/faster-whisper-small', sizeMb: 464, recommended: true },
+  { id: 'medium-q5_0', repo: 'Systran/faster-whisper-medium', sizeMb: 1530 },
+  { id: 'large-v3-turbo-q5_0', repo: 'mobiuslabsgmbh/faster-whisper-large-v3-turbo', sizeMb: 1620 },
 ];
-
-// Motor reserva (faster-whisper no Python embutido), usado quando o Windows bloqueia o whisper-server.exe.
-// O pacote é publicado pelo workflow fw-runtime.yml; subir a versão faz o app baixá-lo de novo uma vez.
-const FW_RUNTIME_VERSION = 'v1';
-const FW_RUNTIME_URL = `https://github.com/LucasTrombiniBatista/SpeakToAll/releases/download/fw-runtime-${FW_RUNTIME_VERSION}/sta-fw-runtime-win64.zip`;
-const FW_RUNTIME_MB = 96;
-// Mesmos ids da interface, no formato CTranslate2 (os .bin do whisper.cpp não servem).
-const FW_MODELS = {
-  tiny: { repo: 'Systran/faster-whisper-tiny', sizeMb: 75 },
-  base: { repo: 'Systran/faster-whisper-base', sizeMb: 145 },
-  small: { repo: 'Systran/faster-whisper-small', sizeMb: 464 },
-  'medium-q5_0': { repo: 'Systran/faster-whisper-medium', sizeMb: 1530 },
-  'large-v3-turbo-q5_0': { repo: 'mobiuslabsgmbh/faster-whisper-large-v3-turbo', sizeMb: 1620 },
-};
-
-// 'auto' usa o nativo até ele ser bloqueado (engineFallback = 'fw'); 'native'/'fw' forçam.
-function backendFor(s = {}) {
-  if (s.engineBackend === 'fw') return 'fw';
-  if (s.engineBackend !== 'native' && s.engineFallback === 'fw') return 'fw';
-  return 'native';
-}
+const modelSpec = (id) => MODELS.find((m) => m.id === id);
 
 const engine = new EventEmitter();
 let paths = null;
-let proc = null, port = 0, ready = false, current = { model: null, flavor: null, backend: 'native' };
+let proc = null, port = 0, ready = false, current = { model: null };
 let abort = null;
 let installing = null; // promise da instalação em andamento
 
-// Código de saída do Windows quando o Controle Inteligente de Aplicativos (Smart App Control)
-// ou outra política de integridade bloqueia um .exe sem assinatura (STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION).
+// Código de saída do Windows quando uma política de integridade bloqueia um executável
+// (STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION). Não deveria acontecer com o python.exe assinado.
 const BLOCKED_BY_POLICY = 0xC0E90002;
-// DLL ausente (STATUS_DLL_NOT_FOUND): no motor CUDA, é o nvcuda.dll do driver da NVIDIA.
-const DLL_NOT_FOUND = 0xC0000135;
 
 function init({ dataDir }) {
-  paths = { bin: path.join(dataDir, 'bin', 'whisper'), fw: path.join(dataDir, 'bin', 'fw'), models: path.join(dataDir, 'models') };
-  fs.mkdirSync(paths.bin, { recursive: true });
+  paths = { bin: path.join(dataDir, 'bin'), fw: path.join(dataDir, 'bin', 'fw'), models: path.join(dataDir, 'models') };
   fs.mkdirSync(paths.models, { recursive: true });
-  // Sobras de instalações cujo bin estava travado (ver clearBin)
-  for (const e of fs.readdirSync(path.dirname(paths.bin))) {
-    if (e.startsWith('whisper-old-')) try { fs.rmSync(path.join(path.dirname(paths.bin), e), { recursive: true, force: true }); } catch {}
-  }
+  removeLegacy();
 }
 
-// O Windows segura o .exe/DLLs por alguns instantes após o kill; tenta de novo e, em último caso,
-// move a pasta para o lado e limpa no próximo init().
-function clearBin() {
+// Até a 0.1.11 o motor era o whisper.cpp: apaga o executável e os modelos ggml (centenas de MB a GB).
+function removeLegacy() {
+  const rm = (p) => { try { fs.rmSync(p, { recursive: true, force: true }); console.warn('[engine] removido', p); } catch {} };
   try {
-    fs.rmSync(paths.bin, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
-  } catch (e) {
-    if (e.code !== 'EPERM' && e.code !== 'EBUSY') throw e;
-    try { fs.renameSync(paths.bin, `${paths.bin}-old-${Date.now()}`); } catch {
-      throw new Error('Arquivos do motor em uso. Feche outras instâncias do SpeakToAll (ou o antivírus pode estar verificando) e tente de novo.');
-    }
-  }
-  fs.mkdirSync(paths.bin, { recursive: true });
-}
-
-const modelPath = (id) => path.join(paths.models, `ggml-${id}.bin`);
-const flavorFile = () => path.join(paths.bin, 'flavor.txt');
-function installedFlavor() { try { return fs.readFileSync(flavorFile(), 'utf8').trim(); } catch { return null; } }
-
-function findExe(name, dir = paths.bin) {
-  let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return null; }
-  for (const e of entries) if (e.isFile() && e.name.toLowerCase() === name) return path.join(dir, e.name);
-  for (const e of entries) if (e.isDirectory()) { const r = findExe(name, path.join(dir, e.name)); if (r) return r; }
-  return null;
-}
-
-const fwPython = () => path.join(paths.fw, 'python', 'python.exe');
-const fwServer = () => path.join(paths.fw, 'server.py');
-const fwModelDir = (id) => path.join(paths.models, `fw-${id}`);
-function fwRuntimeOk() {
+    for (const e of fs.readdirSync(paths.bin)) if (e === 'whisper' || e.startsWith('whisper-old-')) rm(path.join(paths.bin, e));
+  } catch {}
   try {
-    return fs.readFileSync(path.join(paths.fw, 'VERSION'), 'utf8').trim() === FW_RUNTIME_VERSION
-      && fs.existsSync(fwPython()) && fs.existsSync(fwServer());
+    for (const e of fs.readdirSync(paths.models)) if (/^ggml-.*\.bin(\.part)?$/.test(e)) rm(path.join(paths.models, e));
+  } catch {}
+}
+
+const python = () => path.join(paths.fw, 'python', 'python.exe');
+const server = () => path.join(paths.fw, 'server.py');
+const modelDir = (id) => path.join(paths.models, `fw-${id}`);
+function runtimeOk() {
+  try {
+    return fs.readFileSync(path.join(paths.fw, 'VERSION'), 'utf8').trim() === RUNTIME_VERSION
+      && fs.existsSync(python()) && fs.existsSync(server());
   } catch { return false; }
 }
-const fwModelOk = (id) => fs.existsSync(path.join(fwModelDir(id), 'model.bin')) && fs.existsSync(path.join(fwModelDir(id), 'config.json'));
+const modelOk = (id) => fs.existsSync(path.join(modelDir(id), 'model.bin')) && fs.existsSync(path.join(modelDir(id), 'config.json'));
 
 function status() {
-  const backend = current.backend || 'native';
   const model = current.model;
-  if (backend === 'fw') {
-    return { installed: !!(fwRuntimeOk() && model && fwModelOk(model)), ready, model, flavor: 'cpu', backend };
-  }
-  const flavor = installedFlavor();
-  const installed = !!(flavor && findExe('whisper-server.exe') && model && fs.existsSync(modelPath(model)));
-  return { installed, ready, model, flavor, backend };
+  return { installed: !!(runtimeOk() && model && modelOk(model)), ready, model };
 }
 const emitStatus = () => engine.emit('status', status());
 
@@ -119,19 +78,17 @@ function run(cmd, args) {
     (err, out) => resolve(err ? null : String(out))));
 }
 
+// Recomenda o modelo pela CPU/RAM (o motor roda só na CPU). A GPU aparece só como informação.
 async function detectHardware() {
   const cpus = os.cpus();
   const threads = cpus.length;
   const cpu = `${(cpus[0]?.model || 'CPU').trim()} (${threads} threads)`;
   const ramGb = Math.round(os.totalmem() / 1024 ** 3);
-  const out = await run('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader']);
+  const out = await run('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader']);
   const gpu = out && out.trim() ? out.trim().split(/\r?\n/)[0].trim() : null;
-  const vramMb = gpu ? parseInt((gpu.split(',')[1] || '').replace(/\D/g, ''), 10) || 0 : 0;
-  const recommendedFlavor = gpu ? 'cuda' : 'cpu';
-  let recommendedModel = 'large-v3-turbo-q5_0';
-  if (!gpu && (threads < 8 || ramGb < 8)) recommendedModel = ramGb < 6 ? 'base' : 'small';
-  if (gpu && vramMb && vramMb < 2000) recommendedModel = 'small';
-  return { cpu, ramGb, gpu, recommendedFlavor, recommendedModel };
+  // Na CPU, o large-v3-turbo leva quase o tempo do próprio áudio; o small transcreve ~4x mais rápido.
+  const recommendedModel = ramGb < 6 || threads < 4 ? 'base' : 'small';
+  return { cpu, ramGb, gpu, recommendedModel };
 }
 
 // Antivírus e proxies que inspecionam HTTPS instalam a própria raiz no Windows; o fetch do Node só
@@ -155,16 +112,16 @@ async function webFetch(url, opts) {
   try {
     return await fetch(url, opts);
   } catch (e) {
-    let net = null;
-    try { net = require('electron').net; } catch {}
-    if (!net?.fetch || !CERT_ERRORS.test(e.cause?.code || '')) throw e;
+    let electronNet = null;
+    try { electronNet = require('electron').net; } catch {}
+    if (!electronNet?.fetch || !CERT_ERRORS.test(e.cause?.code || '')) throw e;
     console.warn('[engine] fetch do Node recusou o certificado; usando a rede do Chromium', url);
-    return net.fetch(url, opts);
+    return electronNet.fetch(url, opts);
   }
 }
 
-// expectedMb: tamanho conhecido, usado quando o servidor não manda content-length (o net.fetch às vezes
-// não expõe), para a barra não ficar parada em 0%.
+// Download com .part, progresso a cada 150 ms e cancelamento. expectedMb: tamanho conhecido,
+// usado quando o servidor não manda content-length, para a barra não ficar parada em 0%.
 async function download(url, dest, stage, onProgress, signal, expectedMb = 0) {
   const part = dest + '.part';
   try {
@@ -210,81 +167,53 @@ function install(opts, onProgress) {
 const isInstalling = () => !!installing;
 
 // Runtime: zip do Release (ou STA_FW_RUNTIME_ZIP, um zip local, para testar antes de publicar).
-async function installFwRuntime(onProgress, signal) {
-  if (fwRuntimeOk()) return;
-  await stopAndWait();
+async function installRuntime(onProgress, signal) {
+  if (runtimeOk()) return;
+  await stopAndWait(); // o Windows trava o python.exe em uso
   fs.rmSync(paths.fw, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   fs.mkdirSync(paths.fw, { recursive: true });
   const zip = path.join(paths.fw, 'runtime.zip');
   if (process.env.STA_FW_RUNTIME_ZIP) {
     fs.copyFileSync(process.env.STA_FW_RUNTIME_ZIP, zip);
-    onProgress?.({ stage: 'engine', percent: 100, totalMb: FW_RUNTIME_MB });
+    onProgress?.({ stage: 'engine', percent: 100, totalMb: RUNTIME_MB });
   } else {
-    await download(FW_RUNTIME_URL, zip, 'engine', onProgress, signal, FW_RUNTIME_MB);
+    await download(RUNTIME_URL, zip, 'engine', onProgress, signal, RUNTIME_MB);
   }
   await expand(zip, paths.fw);
   fs.unlinkSync(zip);
-  if (!fwRuntimeOk()) throw new Error('Pacote do motor alternativo incompleto');
+  if (!runtimeOk()) throw new Error('Pacote do motor incompleto');
 }
 
 // Modelo CTranslate2: lista os arquivos do repositório e baixa os pequenos primeiro; o model.bin
 // (quase todo o tamanho) por último, com progresso. A pasta só conta como pronta com o model.bin.
-async function installFwModel(model, onProgress, signal) {
-  if (fwModelOk(model)) return;
-  const spec = FW_MODELS[model];
-  if (!spec) throw new Error(`Modelo sem versão para o motor alternativo: ${model}`);
+async function installModel(model, onProgress, signal) {
+  if (modelOk(model)) return;
+  const spec = modelSpec(model);
+  if (!spec) throw new Error(`Modelo desconhecido: ${model}`);
   const res = await webFetch(`https://huggingface.co/api/models/${spec.repo}`, { signal });
   if (!res.ok) throw new Error(`HTTP ${res.status} ao listar ${spec.repo}`);
   const files = ((await res.json()).siblings || []).map((f) => f.rfilename)
     .filter((f) => !/\.(md|gitattributes)$/i.test(f) && !f.includes('/'));
   if (!files.includes('model.bin')) throw new Error(`model.bin não encontrado em ${spec.repo}`);
-  const dir = fwModelDir(model);
+  const dir = modelDir(model);
   fs.mkdirSync(dir, { recursive: true });
   const url = (f) => `https://huggingface.co/${spec.repo}/resolve/main/${f}`;
   for (const f of files.filter((x) => x !== 'model.bin')) await download(url(f), path.join(dir, f), 'aux', null, signal);
   await download(url('model.bin'), path.join(dir, 'model.bin'), 'model', onProgress, signal, spec.sizeMb);
 }
 
-async function doInstall({ flavor = 'cpu', model, backend = 'native' }, onProgress) {
-  console.warn('[engine] install', backend, flavor, model);
-  if (backend === 'fw') {
-    abort = new AbortController();
-    try {
-      await installFwRuntime(onProgress, abort.signal);
-      if (model) await installFwModel(model, onProgress, abort.signal);
-      current = { model, flavor: 'cpu', backend: 'fw' };
-      onProgress?.({ stage: 'starting', percent: 100 });
-      emitStatus();
-      console.warn('[engine] install ok', backend, model);
-      return;
-    } catch (e) {
-      console.warn('[engine] install falhou', backend, model, e.message);
-      throw e;
-    } finally { abort = null; }
-  }
-  await stopAndWait(); // o Windows trava o .exe em uso
+async function doInstall({ model }, onProgress) {
+  console.warn('[engine] install', model);
   abort = new AbortController();
-  const { signal } = abort;
   try {
-    if (installedFlavor() !== flavor || !findExe('whisper-server.exe') || !findExe('whisper-cli.exe')) {
-      clearBin();
-      const z = ZIPS[flavor] || ZIPS.cpu;
-      const zip = path.join(paths.bin, z.file);
-      await download(`https://github.com/ggml-org/whisper.cpp/releases/download/${VERSION}/${z.file}`, zip, 'engine', onProgress, signal, z.mb);
-      await expand(zip, paths.bin);
-      fs.unlinkSync(zip);
-      if (!findExe('whisper-server.exe')) throw new Error('whisper-server.exe não encontrado no pacote');
-      fs.writeFileSync(flavorFile(), flavor);
-    }
-    if (model && !fs.existsSync(modelPath(model))) {
-      await download(`https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model), 'model', onProgress, signal, MODELS.find((m) => m.id === model)?.sizeMb);
-    }
-    current = { model, flavor, backend: 'native' };
+    await installRuntime(onProgress, abort.signal);
+    if (model) await installModel(model, onProgress, abort.signal);
+    current = { model };
     onProgress?.({ stage: 'starting', percent: 100 });
     emitStatus();
-    console.warn('[engine] install ok', flavor, model);
+    console.warn('[engine] install ok', model);
   } catch (e) {
-    console.warn('[engine] install falhou', flavor, model, e.message);
+    console.warn('[engine] install falhou', model, e.message);
     throw e;
   } finally { abort = null; }
 }
@@ -312,14 +241,13 @@ function canConnect(p) {
 const defaultThreads = () => Math.max(1, Math.min(8, Math.floor(os.cpus().length / 2)));
 // Limita ao padrão: configs antigas salvaram cpus - 2 (6 threads em 4 núcleos).
 const threadsFor = (s) => Math.min(s.threads || defaultThreads(), defaultThreads());
-// 'fast' = greedy; 'accurate' = beam search 5 (~3-5x mais lento na CPU).
-// Argumentos do server.py (motor reserva), equivalentes aos do whisper-server/whisper-cli.
-const fwArgs = (s, extra = []) => [
-  fwServer(), '--model', fwModelDir(s.model || current.model), '--threads', String(threadsFor(s)),
+
+// Argumentos do server.py. 'fast' = greedy; 'accurate' = beam search 5 (~3-5x mais lento).
+const serverArgs = (s, extra = []) => [
+  server(), '--model', modelDir(s.model || current.model), '--threads', String(threadsFor(s)),
   '--language', s.language || 'auto', '--beam', s.transcriptionQuality === 'accurate' ? '5' : '1',
   ...(s.initialPrompt ? ['--prompt', s.initialPrompt] : []), ...extra,
 ];
-const decodeArgs = (s) => (s.transcriptionQuality === 'accurate' ? ['-bs', '5', '-bo', '5'] : ['-bs', '1', '-bo', '1']);
 
 // O whisper pode fechar um segmento no meio de uma palavra; a continuação vem sem espaço
 // inicial. Juntar com o texto cru (sem trim) evita "be m" no lugar de "bem".
@@ -330,20 +258,11 @@ async function start(settings) {
   // Durante a instalação os arquivos são apagados e trocados; quem instala sobe o motor no fim.
   if (installing) throw new Error('Instalação do motor em andamento');
   stop();
-  const backend = backendFor(settings);
-  const fw = backend === 'fw';
-  current = { model: settings.model, flavor: fw ? 'cpu' : installedFlavor() || settings.engineFlavor, backend };
-  const exe = fw ? (fwRuntimeOk() ? fwPython() : null) : findExe('whisper-server.exe');
-  const modelOk = fw ? fwModelOk(settings.model) : fs.existsSync(modelPath(settings.model));
-  if (!exe || !modelOk) { emitStatus(); throw new Error('Engine ou modelo não instalado'); }
+  current = { model: settings.model };
+  if (!runtimeOk() || !modelOk(settings.model)) { emitStatus(); throw new Error('Engine ou modelo não instalado'); }
   port = await freePort();
   if (installing) throw new Error('Instalação do motor em andamento');
-  const args = fw ? fwArgs(settings, ['--port', String(port)]) : [
-    '-m', modelPath(settings.model), '--host', '127.0.0.1', '--port', String(port), '-t', String(threadsFor(settings)),
-    '-l', settings.language || 'auto', ...decodeArgs(settings), '-sow',
-    ...(settings.initialPrompt ? ['--prompt', settings.initialPrompt] : []),
-  ];
-  const p = spawn(exe, args, { cwd: fw ? paths.fw : path.dirname(exe), windowsHide: true, stdio: 'ignore' });
+  const p = spawn(python(), serverArgs(settings, ['--port', String(port)]), { cwd: paths.fw, windowsHide: true, stdio: 'ignore' });
   proc = p;
   let exitCode = null;
   // Sem este handler, um spawn que falha (ENOENT) derruba o processo principal.
@@ -358,18 +277,13 @@ async function start(settings) {
         err.code = 'BLOCKED_BY_POLICY';
         throw err;
       }
-      if (exitCode === DLL_NOT_FOUND && current.flavor === 'cuda') {
-        const err = new Error('Driver da NVIDIA não encontrado. Instale o driver da placa ou use o motor CPU.');
-        err.code = 'NO_NVIDIA_DRIVER';
-        throw err;
-      }
-      throw new Error(`${fw ? 'Motor alternativo' : 'whisper-server'} encerrou${exitCode != null ? ` (código ${exitCode})` : ''}`);
+      throw new Error(`Motor encerrou${exitCode != null ? ` (código ${exitCode})` : ''}`);
     }
     if (await canConnect(port)) { ready = true; emitStatus(); return status(); }
     await new Promise((r) => setTimeout(r, 300));
   }
   stop();
-  throw new Error('Timeout aguardando whisper-server');
+  throw new Error('Timeout aguardando o motor');
 }
 
 function stop() {
@@ -390,11 +304,8 @@ function stopAndWait(timeoutMs = 5000) {
 async function transcribe(wav, { language } = {}) {
   if (!ready) throw new Error('Engine não está pronto');
   const buf = Buffer.isBuffer(wav) ? wav : Buffer.from(wav);
-  const fw = current.backend === 'fw';
-  const res = fw
-    ? await fetch(`http://127.0.0.1:${port}/inference?language=${encodeURIComponent(language || '')}`, { method: 'POST', body: buf })
-    : await inferNative(buf, language);
-  if (!res.ok) throw new Error(`${fw ? 'Motor alternativo' : 'whisper-server'} HTTP ${res.status}`);
+  const res = await fetch(`http://127.0.0.1:${port}/inference?language=${encodeURIComponent(language || '')}`, { method: 'POST', body: buf });
+  if (!res.ok) throw new Error(`Motor HTTP ${res.status}`);
   const j = await res.json();
   const segments = (j.segments || []).map((s) => ({
     t0: Math.round((s.start ?? 0) * 1000), t1: Math.round((s.end ?? 0) * 1000), raw: String(s.text || ''), text: String(s.text || '').trim(),
@@ -402,35 +313,18 @@ async function transcribe(wav, { language } = {}) {
   return { text: String(j.text ?? joinSegments(segments)).trim(), segments, language: j.language || language };
 }
 
-function inferNative(buf, language) {
-  const fd = new FormData();
-  fd.append('file', new Blob([buf], { type: 'audio/wav' }), 'audio.wav');
-  fd.append('response_format', 'verbose_json');
-  fd.append('temperature', '0');
-  fd.append('temperature_inc', '0'); // sem fallback: re-decodificar multiplica o tempo do ditado
-  if (language) fd.append('language', language);
-  return fetch(`http://127.0.0.1:${port}/inference`, { method: 'POST', body: fd });
-}
-
 const toMs = (h, m, s, ms) => ((+h * 60 + +m) * 60 + +s) * 1000 + +ms;
 const SEG_RE = /^\[(\d+):(\d+):(\d+)\.(\d+)\s*-->\s*(\d+):(\d+):(\d+)\.(\d+)\]\s*(.*)$/;
 
+// Arquivo longo num processo à parte (server.py --file): segmentos e progresso no stdout,
+// resultado final num JSON ao lado do WAV.
 function transcribeFile(wavPath, opts = {}, onSegment, onProgress) {
   let child = null, cancelled = false;
   const promise = new Promise((resolve, reject) => {
-    const fw = (current.model ? current.backend : backendFor(opts)) === 'fw';
     const model = opts.model || current.model;
-    const exe = fw ? (fwRuntimeOk() ? fwPython() : null) : findExe('whisper-cli.exe');
-    if (!exe || !model || !(fw ? fwModelOk(model) : fs.existsSync(modelPath(model)))) return reject(new Error('Engine ou modelo não instalado'));
+    if (!runtimeOk() || !model || !modelOk(model)) return reject(new Error('Engine ou modelo não instalado'));
     const base = wavPath.replace(/\.[^.\\/]+$/, '') + '.stt';
-    let args;
-    if (fw) args = fwArgs({ ...opts, model }, ['--file', wavPath, '--out', base]);
-    else {
-      args = ['-m', modelPath(model), '-f', wavPath, '-l', opts.language || 'auto', '-t', String(threadsFor(opts)),
-        '-oj', '-of', base, '-pp', '-np', ...decodeArgs(opts), '-sow'];
-      if (opts.initialPrompt) args.push('--prompt', opts.initialPrompt);
-    }
-    child = spawn(exe, args, { cwd: fw ? paths.fw : path.dirname(exe), windowsHide: true });
+    child = spawn(python(), serverArgs({ ...opts, model }, ['--file', wavPath, '--out', base]), { cwd: paths.fw, windowsHide: true });
     const segments = [];
     const lineReader = () => {
       let rest = '';
@@ -462,7 +356,7 @@ function transcribeFile(wavPath, opts = {}, onSegment, onProgress) {
         result = { text: joinSegments(segs), segments: segs };
       } catch {}
       try { fs.unlinkSync(jsonFile); } catch {}
-      if (!result && code !== 0) return reject(new Error(`whisper-cli saiu com código ${code}`));
+      if (!result && code !== 0) return reject(new Error(`Motor saiu com código ${code}`));
       resolve(result || { text: joinSegments(segments), segments });
     });
   });
@@ -481,7 +375,7 @@ function postProcess(text, language, chineseVariant) {
     text = cc[chineseVariant](text);
   }
   const map = { ',': '，', '.': '。', '?': '？', '!': '！', ':': '：', ';': '；' };
-  return text.replace(/([㐀-鿿豈-﫿])\s*([,.?!:;])/g, (_m, c, p) => c + map[p]);
+  return text.replace(/([㐀-鿿豈-﫿])\s*([,.?!:;])/g, (_m, c, p) => c + map[p]);
 }
 
 function cleanTranscript(text) {
@@ -496,7 +390,7 @@ function cleanTranscript(text) {
 process.on('exit', () => { try { proc?.kill(); } catch {} });
 
 Object.assign(engine, {
-  MODELS, FW_MODELS, FW_RUNTIME_MB, backendFor, init, detectHardware, install, isInstalling, BLOCKED_BY_POLICY, cancel, start, stop, status,
+  MODELS, RUNTIME_MB, init, detectHardware, install, isInstalling, BLOCKED_BY_POLICY, cancel, start, stop, status,
   transcribe, transcribeFile, postProcess, cleanTranscript, joinSegments, threadsFor,
 });
 module.exports = engine;

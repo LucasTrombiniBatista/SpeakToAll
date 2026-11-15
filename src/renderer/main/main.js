@@ -104,8 +104,7 @@ function renderEngine(st) {
   const pill = $('#engine-status .pill');
   pill.classList.toggle('ok', !!st.ready);
   $('#engine-label').textContent = st.ready ? (st.model || '').replace(/-q5_0$/, '') : st.installed ? t('js.engine-starting', {}, 'iniciando…') : t('js.engine-none', {}, 'sem motor');
-  const name = st.backend === 'fw' ? 'faster-whisper' : 'whisper.cpp';
-  $('#set-engine-info').textContent = st.ready ? `${name} · ${st.flavor} · ${st.model}` : t('js.engine-not-installed', {}, 'não instalado');
+  $('#set-engine-info').textContent = st.ready ? `faster-whisper · ${st.model}` : t('js.engine-not-installed', {}, 'não instalado');
 }
 $('#engine-status').addEventListener('click', () => showView('settings'));
 
@@ -539,7 +538,7 @@ async function saveSetting(key, value) {
   renderHotkey();
   if (key === 'uiLanguage') await applyLanguage();
   if (key === 'restrictedMode') renderPlugins();
-  if (['model', 'engineFlavor', 'language', 'initialPrompt'].includes(key)) toast(t('js.engine-restart', {}, 'Motor será reiniciado'));
+  if (['model', 'language', 'initialPrompt'].includes(key)) toast(t('js.engine-restart', {}, 'Motor será reiniciado'));
 }
 
 // Preenche todos os seletores de microfone (Configurações e onboarding).
@@ -826,29 +825,28 @@ $('#plugins-reload').addEventListener('click', async () => { await api.reloadPlu
 /* ---------- onboarding ---------- */
 const OB_LAST = 4;
 let obStep = 0;
-let obFlavor = 'cpu';
-// A detecção (nvidia-smi) pode levar segundos: a recomendação só vale se a pessoa ainda não escolheu.
-let obFlavorTouched = false;
+// A detecção do hardware pode levar segundos: a recomendação só vale se a pessoa ainda não escolheu.
+let obModel = null;
+let obModelTouched = false;
 let obHw = null;
 let obMic = null;
 
 function openOnboarding(step = 0) { $('#onboarding').hidden = false; goStep(step); }
 
-function goStep(n, { install = true } = {}) {
+function goStep(n) {
   obStep = n;
   $$('.ob-step').forEach((s) => (s.hidden = +s.dataset.step !== n));
   $('#ob-steps').innerHTML = Array.from({ length: OB_LAST + 1 }, (_, i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('');
   $('#ob-back').style.visibility = n > 0 && n !== 2 ? 'visible' : 'hidden';
   $('#ob-next').textContent = n === 0 ? t('onboarding.comecar', {}, 'Começar') : n === OB_LAST ? t('js.finish', {}, 'Concluir') : n === 1 ? t('js.download', {}, 'Baixar') : t('js.continue', {}, 'Continuar');
   $('#ob-next').disabled = false;
-  if (n === 1) { $('#ob-next').disabled = !obHw && !obFlavorTouched; detectHw(); }
-  $('#ob-blocked').hidden = true;
-  if (n === 2 && install) runInstall();
+  if (n === 1) { $('#ob-next').disabled = !obHw && !obModelTouched; detectHw(); }
+  if (n === 2) runInstall();
   if (n !== 3) stopMicTest();
 }
 
-function paintFlavor() {
-  $$('#ob-flavor button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.value === obFlavor));
+function paintModel() {
+  $$('#ob-model-choice button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.value === obModel));
 }
 
 async function detectHw() {
@@ -859,51 +857,37 @@ async function detectHw() {
     const dd = document.createElement('dd'); dd.textContent = v;
     $('#ob-hw').append(dt, dd);
   }
-  if (!obFlavorTouched) obFlavor = hw.recommendedFlavor;
-  $$('#ob-flavor button').forEach((b) => {
+  if (!obModelTouched) obModel = hw.recommendedModel;
+  $$('#ob-model-choice button').forEach((b) => {
     $('.rec', b)?.remove();
-    if (b.dataset.value === hw.recommendedFlavor) b.insertAdjacentHTML('beforeend', `<span class="rec">${t('js.recommended', {}, 'RECOMENDADO')}</span>`);
+    if (b.dataset.value === hw.recommendedModel) b.insertAdjacentHTML('beforeend', `<span class="rec">${t('js.recommended', {}, 'RECOMENDADO')}</span>`);
   });
-  paintFlavor();
+  paintModel();
   if (obStep === 1) $('#ob-next').disabled = false;
 }
-$$('#ob-flavor button').forEach((b) => b.addEventListener('click', () => {
-  obFlavor = b.dataset.value;
-  obFlavorTouched = true;
-  paintFlavor();
-  if (obFlavor === 'cuda' && obHw && !obHw.gpu) toast(t('js.cuda-no-gpu', {}, 'Nenhuma placa NVIDIA detectada: o motor CUDA não vai funcionar neste PC.'));
+$$('#ob-model-choice button').forEach((b) => b.addEventListener('click', () => {
+  obModel = b.dataset.value;
+  obModelTouched = true;
+  paintModel();
   if (obStep === 1) $('#ob-next').disabled = false;
 }));
 
-// O Windows bloqueou o motor nativo: em vez do erro, oferece o motor reserva (faster-whisper).
-function showBlocked() {
-  $('#ob-dl-status').textContent = '';
-  $('#ob-blocked').hidden = false;
+async function runInstall() {
+  const model = obModel || settings.model;
   $('#ob-next').disabled = true;
-  $('#ob-back').style.visibility = 'visible';
-}
-$('#ob-use-fw').addEventListener('click', () => { $('#ob-blocked').hidden = true; runInstall('fw'); });
-
-async function runInstall(backend) {
-  $('#ob-next').disabled = true;
-  $('#ob-blocked').hidden = true;
-  $('#ob-model').textContent = settings.model;
-  const fw = backend === 'fw' || (!backend && settings.engineBackend !== 'native' && (settings.engineBackend === 'fw' || settings.engineFallback === 'fw'));
-  $('#ob-engine-name').textContent = fw ? 'faster-whisper' : 'whisper.cpp';
+  $('#ob-model').textContent = model;
   ['engine', 'model'].forEach((s) => { $(`#ob-p-${s}`).style.width = '0'; $(`#ob-t-${s}`).textContent = '0%'; });
   const off = api.on('engine:progress', ({ stage, percent, totalMb }) => {
     if (stage === 'starting') { $('#ob-dl-status').textContent = t('js.loading-model', {}, 'Carregando modelo na memória…'); return; }
     $(`#ob-p-${stage}`).style.width = `${percent}%`;
     $(`#ob-t-${stage}`).textContent = `${percent}%`;
-    $('#ob-dl-status').textContent = `${stage === 'engine' ? $('#ob-engine-name').textContent : settings.model} · ${Math.round((totalMb * percent) / 100)} / ${totalMb} MB`;
+    $('#ob-dl-status').textContent = `${stage === 'engine' ? 'faster-whisper' : model} · ${Math.round((totalMb * percent) / 100)} / ${totalMb} MB`;
   });
-  // Não salva engineFlavor antes: isso reiniciava o motor no meio da instalação (arquivos travados).
-  // O main grava flavor e modelo quando a instalação termina.
+  // O main grava o modelo só quando a instalação termina (gravar antes reiniciava o motor no meio).
   try {
-    const res = await api.installEngine({ flavor: obFlavor, model: settings.model, backend });
+    await api.installEngine({ model });
     settings = await api.getSettings();
     bindSettings();
-    if (res?.blocked) return showBlocked();
     $('#ob-dl-status').textContent = t('onboarding.pronto', {}, 'Pronto.');
     $('#ob-next').disabled = false;
   } catch (err) {
@@ -1011,18 +995,13 @@ window.addEventListener('resize', closeCtxMenu);
   loadMics();
   renderEngine(await api.engineStatus());
   api.on('engine:status', renderEngine);
-  // Bloqueio detectado ao subir o motor (ex.: depois de uma atualização): abre o passo do download
-  // com a oferta do motor reserva, sem baixar nada sozinho.
-  const offerFw = () => {
-    if (!$('#onboarding').hidden && obStep === 2) return;
-    $('#onboarding').hidden = false;
-    goStep(2, { install: false });
-    showBlocked();
-  };
-  api.on('engine:blocked', async () => { settings = await api.getSettings(); offerFw(); });
-  // O aviso pode ter saído antes de a janela carregar: confere também ao abrir.
+  // Quem atualizou de uma versão com o whisper.cpp não tem o motor novo: leva direto para a escolha do modelo.
   const st0 = await api.engineStatus();
-  if (settings.onboarded && settings.engineFallback === 'fw' && settings.engineBackend !== 'native' && !st0.installed) offerFw();
+  if (settings.onboarded && !st0.installed) {
+    obModel = settings.model;
+    $('#ob-upgrade-note').hidden = false;
+    openOnboarding(1);
+  }
   api.on('settings:changed', (s) => { settings = s; });
   api.on('plugins:changed', renderPlugins);
   api.on('plugins:notice', ({ name, message }) => toast(`${name}: ${message}`));

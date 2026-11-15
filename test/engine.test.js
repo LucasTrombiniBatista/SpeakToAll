@@ -30,8 +30,8 @@ test('install em andamento: segunda chamada reaproveita a mesma e start() recusa
   let calls = 0;
   global.fetch = async () => { calls++; await new Promise((r) => setTimeout(r, 50)); return { ok: false, status: 503 }; };
   try {
-    const a = engine.install({ flavor: 'cpu', model: 'tiny' });
-    const b = engine.install({ flavor: 'cuda', model: 'tiny' });
+    const a = engine.install({ model: 'tiny' });
+    const b = engine.install({ model: 'base' });
     assert.strictEqual(a, b);
     assert.strictEqual(engine.isInstalling(), true);
     await assert.rejects(engine.start({ model: 'tiny' }), /andamento/);
@@ -48,16 +48,8 @@ test('código de bloqueio do Windows é o STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATI
   assert.strictEqual(require('../src/main/engine').BLOCKED_BY_POLICY, 3236495362);
 });
 
-test('backendFor: automático usa o nativo até um bloqueio; forçar ignora o fallback', () => {
-  const { backendFor } = require('../src/main/engine');
-  assert.strictEqual(backendFor({ engineBackend: 'auto', engineFallback: '' }), 'native');
-  assert.strictEqual(backendFor({ engineBackend: 'auto', engineFallback: 'fw' }), 'fw');
-  assert.strictEqual(backendFor({ engineBackend: 'native', engineFallback: 'fw' }), 'native');
-  assert.strictEqual(backendFor({ engineBackend: 'fw' }), 'fw');
-  assert.strictEqual(backendFor({}), 'native');
-});
-
-test('todo modelo da interface tem versão para o motor reserva', () => {
-  const { MODELS, FW_MODELS } = require('../src/main/engine');
-  for (const m of MODELS) assert.ok(FW_MODELS[m.id]?.repo, m.id);
+test('todo modelo tem repositório CTranslate2 e o small é o recomendado', () => {
+  const { MODELS } = require('../src/main/engine');
+  for (const m of MODELS) assert.match(m.repo, /faster-whisper/, m.id);
+  assert.strictEqual(MODELS.find((m) => m.recommended).id, 'small');
 });

@@ -23,7 +23,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 // Mesmo ID do instalador: barra de tarefas agrupa e usa o ícone do atalho; notificações saem com o nome do app.
 app.setAppUserModelId('com.lucastrombini.speaktoall');
 
-const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality', 'engineBackend'];
+const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'transcriptionQuality'];
 const HOTKEY_KEYS = ['hotkeyKeys', 'hotkeyMode', 'tapToLock'];
 let chatAbort = null;
 let installing = false;
@@ -37,17 +37,8 @@ function configureHotkeys(s) {
   hotkeys.configure({ keys: s.hotkeyKeys, mode: s.hotkeyMode, tapToLock: s.tapToLock });
 }
 
-// No modo automático, um bloqueio do Windows (Controle Inteligente de Aplicativos) troca para o
-// motor reserva de vez; a interface oferece o download dele (engine:blocked).
-function markBlocked(err) {
-  if (err?.code !== 'BLOCKED_BY_POLICY' || config.get().engineBackend === 'native') return false;
-  config.set({ engineFallback: 'fw' });
-  windows.send('engine:blocked', {});
-  return true;
-}
-
 async function startEngine() {
-  try { await engine.start(config.get()); } catch (err) { markBlocked(err); console.warn('[engine]', err.message); }
+  try { await engine.start(config.get()); } catch (err) { console.warn('[engine]', err.message); }
 }
 
 // Avisos do updater: banner dentro do app; com a janela escondida na bandeja, notificação do sistema.
@@ -73,21 +64,13 @@ function registerIpc(d) {
 
   ipcMain.handle('engine:status', () => engine.status());
   ipcMain.handle('engine:hardware', () => engine.detectHardware());
-  // backend omitido = o que as configurações indicam (nativo, ou o reserva depois de um bloqueio).
-  // Se o nativo instalar mas o Windows bloquear, devolve { blocked: true } para a interface oferecer o reserva.
-  ipcMain.handle('engine:install', async (_e, { flavor, model, backend }) => {
+  ipcMain.handle('engine:install', async (_e, { model }) => {
     if (installing) throw new Error('Uma instalação já está em andamento');
     installing = true;
     try {
-      const b = backend || engine.backendFor(config.get());
-      await engine.install({ flavor, model, backend: b }, (p) => windows.send('engine:progress', p));
-      config.set(b === 'fw' ? { model, ...(config.get().engineBackend === 'native' ? { engineBackend: 'auto' } : {}), engineFallback: 'fw' } : { engineFlavor: flavor, model });
-      try {
-        await engine.start(config.get());
-      } catch (err) {
-        if (b === 'native' && markBlocked(err)) return { ...engine.status(), blocked: true };
-        throw err;
-      }
+      await engine.install({ model }, (p) => windows.send('engine:progress', p));
+      config.set({ model });
+      await engine.start(config.get());
       return engine.status();
     } finally {
       installing = false;

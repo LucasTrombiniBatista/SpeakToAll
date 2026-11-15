@@ -1,5 +1,5 @@
 // Utilitários de áudio compartilhados pelo overlay e pela janela principal.
-// Formato esperado pelo whisper.cpp: WAV PCM 16-bit mono 16 kHz.
+// Formato esperado pelo motor (faster-whisper): WAV PCM 16-bit mono 16 kHz.
 (function () {
   const SAMPLE_RATE = 16000;
 
