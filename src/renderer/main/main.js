@@ -1013,13 +1013,16 @@ window.addEventListener('resize', closeCtxMenu);
   api.on('engine:status', renderEngine);
   // Bloqueio detectado ao subir o motor (ex.: depois de uma atualização): abre o passo do download
   // com a oferta do motor reserva, sem baixar nada sozinho.
-  api.on('engine:blocked', async () => {
-    settings = await api.getSettings();
+  const offerFw = () => {
     if (!$('#onboarding').hidden && obStep === 2) return;
     $('#onboarding').hidden = false;
     goStep(2, { install: false });
     showBlocked();
-  });
+  };
+  api.on('engine:blocked', async () => { settings = await api.getSettings(); offerFw(); });
+  // O aviso pode ter saído antes de a janela carregar: confere também ao abrir.
+  const st0 = await api.engineStatus();
+  if (settings.onboarded && settings.engineFallback === 'fw' && settings.engineBackend !== 'native' && !st0.installed) offerFw();
   api.on('settings:changed', (s) => { settings = s; });
   api.on('plugins:changed', renderPlugins);
   api.on('plugins:notice', ({ name, message }) => toast(`${name}: ${message}`));
