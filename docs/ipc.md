@@ -9,9 +9,9 @@ Os renderers nunca acessam Node. Tudo passa por `window.wp`, criado no preload c
 | `i18n()` | `i18n:get` | dicionário do idioma da interface |
 | `getSettings()` | `settings:get` | objeto de configurações |
 | `setSettings(patch)` | `settings:set` | configurações atualizadas |
-| `engineStatus()` | `engine:status` | `{installed, ready, model, flavor}` |
-| `detectHardware()` | `engine:hardware` | `{cpu, ramGb, gpu, recommendedFlavor, recommendedModel}` |
-| `installEngine({flavor, model})` | `engine:install` | status após instalar e subir o servidor |
+| `engineStatus()` | `engine:status` | `{installed, ready, model}` |
+| `detectHardware()` | `engine:hardware` | `{cpu, ramGb, gpu, recommendedModel}` |
+| `installEngine({model})` | `engine:install` | status após instalar e subir o servidor |
 | `cancelInstall()` | `engine:cancel` | — |
 | `listNotes()` | `notes:list` | notas sem `segments` |
 | `getNote(id)` | `notes:get` | nota completa |
@@ -58,7 +58,7 @@ Só os eventos desta lista são aceitos (allowlist no preload).
 |---|---|
 | `settings:changed` | configurações completas |
 | `engine:progress` | `{stage: 'engine' \| 'model' \| 'starting', percent, totalMb}` |
-| `engine:status` | `{installed, ready, model, flavor}` |
+| `engine:status` | `{installed, ready, model}` |
 | `jobs:update` | `{id, name, status: 'queued' \| 'running' \| 'done' \| 'error', progress, segments, error?}` |
 | `notes:changed` | — |
 | `ai:chunk` | `{delta}` · `{error}` · `{done: true}` |
@@ -99,4 +99,4 @@ O overlay **sempre** devolve o áudio ao parar; quem descarta gravações < 350 
 
 `source`: `dictation` · `import` · `meeting`. Tempos em milissegundos. `obsidianPath` só existe depois de enviar a nota ao Obsidian.
 
-**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyKeys` (1 a 3 keycodes; `hotkeyCode`/`hotkeyModifiers` antigos são migrados), `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `engineFlavor`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `aiApiKey`, `obsidianVault`, `obsidianFolder`, `obsidianCategories` (uma por linha), `obsidianAutoDetect`, `theme`, `uiLanguage`, `startWithWindows` (padrão `true`; `autostartMigrated` marca a migração única da 0.1.9), `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.
+**Configurações** — chaves de `settings.json`: `hotkey`, `hotkeyKeys` (1 a 3 keycodes; `hotkeyCode`/`hotkeyModifiers` antigos são migrados), `hotkeyMode`, `tapToLock`, `micDevice`, `language`, `model`, `threads`, `initialPrompt`, `injectMode`, `sounds`, `saveDictationNotes`, `saveAudio`, `aiBaseUrl`, `aiModel`, `aiApiKey`, `obsidianVault`, `obsidianFolder`, `obsidianCategories` (uma por linha), `obsidianAutoDetect`, `theme`, `uiLanguage`, `startWithWindows` (padrão `true`; `autostartMigrated` marca a migração única da 0.1.9), `closeToTray`, `onboarded`, `chineseVariant`, `enabledPlugins`, `restrictedMode`, `pluginCatalogUrl`.

@@ -11,7 +11,7 @@
 
   let settings = {
     uiLanguage: 'pt-BR', hotkey: 'F9', hotkeyMode: 'hold', tapToLock: true,
-    language: 'pt', model: 'large-v3-turbo-q5_0', engineFlavor: 'cpu', micDevice: 'default',
+    language: 'pt', model: 'small', micDevice: 'default',
     initialPrompt: 'Olá, tudo bem? Vamos começar.', injectMode: 'paste',
     sounds: true, saveDictationNotes: true, saveAudio: false,
     aiBaseUrl: 'http://localhost:11434/v1', aiModel: 'llama3.1', aiApiKey: '',
@@ -31,7 +31,7 @@
     },
   ];
   const pluginList = () => plugins.map((p) => ({ ...p, loaded: p.enabled && !settings.restrictedMode && !!p.manifest }));
-  let engine = { installed: true, ready: true, model: settings.model, flavor: 'cpu' };
+  let engine = { installed: true, ready: true, model: settings.model };
 
   const notes = [
     {
@@ -79,15 +79,15 @@
       emit('settings:changed', settings);
       return { ...settings };
     },
-    async engineStatus() { return { ...engine, model: settings.model, flavor: settings.engineFlavor }; },
+    async engineStatus() { return { ...engine, model: settings.model }; },
     async detectHardware() {
       await wait(700);
-      return { cpu: 'AMD Ryzen 7 5800X (16 threads)', ramGb: 32, gpu: 'NVIDIA GeForce RTX 3060 (12 GB)', recommendedFlavor: 'cuda', recommendedModel: 'large-v3-turbo-q5_0' };
+      return { cpu: 'AMD Ryzen 7 5800X (16 threads)', ramGb: 32, gpu: 'NVIDIA GeForce RTX 3060', recommendedModel: 'small' };
     },
-    async installEngine({ flavor, model }) {
+    async installEngine({ model }) {
       engine = { installed: false, ready: false };
       emit('engine:status', engine);
-      const steps = [['engine', flavor === 'cuda' ? 439 : 16], ['model', 574]];
+      const steps = [['engine', 96], ['model', 464]];
       for (const [stage, mb] of steps) {
         for (let p = 0; p <= 100; p += 4) {
           emit('engine:progress', { stage, percent: p, totalMb: mb });
@@ -96,7 +96,7 @@
       }
       emit('engine:progress', { stage: 'starting', percent: 100 });
       await wait(600);
-      engine = { installed: true, ready: true, model, flavor };
+      engine = { installed: true, ready: true, model };
       emit('engine:status', engine);
       return engine;
     },

@@ -1,4 +1,4 @@
-# Monta o runtime do motor reserva: Python embutido oficial + faster-whisper + server.py.
+# Monta o runtime do motor: Python embutido oficial + faster-whisper + server.py.
 # Uso: powershell -File scripts/fw-runtime/build.ps1 -Out dist/fw-runtime
 # Saída: <Out>/sta-fw-runtime-win64.zip, com python/ (python.exe assinado pela PSF), server.py e VERSION.
 param(

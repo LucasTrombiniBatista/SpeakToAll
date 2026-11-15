@@ -23,7 +23,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 // Mesmo ID do instalador: barra de tarefas agrupa e usa o ícone do atalho; notificações saem com o nome do app.
 app.setAppUserModelId('com.lucastrombini.speaktoall');
 
-const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'engineFlavor', 'transcriptionQuality'];
+const RESTART_KEYS = ['model', 'language', 'initialPrompt', 'threads', 'transcriptionQuality'];
 const HOTKEY_KEYS = ['hotkeyKeys', 'hotkeyMode', 'tapToLock'];
 let chatAbort = null;
 let installing = false;
@@ -64,12 +64,12 @@ function registerIpc(d) {
 
   ipcMain.handle('engine:status', () => engine.status());
   ipcMain.handle('engine:hardware', () => engine.detectHardware());
-  ipcMain.handle('engine:install', async (_e, { flavor, model }) => {
+  ipcMain.handle('engine:install', async (_e, { model }) => {
     if (installing) throw new Error('Uma instalação já está em andamento');
     installing = true;
     try {
-      await engine.install({ flavor, model }, (p) => windows.send('engine:progress', p));
-      config.set({ engineFlavor: flavor, model });
+      await engine.install({ model }, (p) => windows.send('engine:progress', p));
+      config.set({ model });
       await engine.start(config.get());
       return engine.status();
     } finally {

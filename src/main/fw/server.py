@@ -1,7 +1,6 @@
-"""Motor reserva do SpeakToAll: faster-whisper (CTranslate2) rodando no Python embutido.
+"""Motor do SpeakToAll: faster-whisper (CTranslate2) rodando no Python embutido.
 
-Usado quando o Windows (Controle Inteligente de Aplicativos) bloqueia o whisper-server.exe.
-Fala o mesmo "idioma" do motor nativo para o engine.js mudar pouco:
+O engine.js sobe este servidor para o ditado e o chama com --file para arquivos longos:
 
   Servidor:  server.py --model DIR --port N [--threads N] [--language pt] [--beam 1] [--prompt TXT]
              GET  /health
@@ -9,8 +8,8 @@ Fala o mesmo "idioma" do motor nativo para o engine.js mudar pouco:
                   -> {"text", "language", "segments": [{"start", "end", "text"}]}  (segundos)
 
   Arquivo:   server.py --model DIR --file AUDIO.wav --out BASE [...]
-             imprime "[hh:mm:ss.mmm --> hh:mm:ss.mmm]  texto" e "progress = N%" (como o whisper-cli)
-             e grava BASE.json no formato do whisper-cli: {"transcription": [{"offsets": {from, to}, "text"}]}
+             imprime "[hh:mm:ss.mmm --> hh:mm:ss.mmm]  texto" e "progress = N%" 
+             e grava BASE.json {"transcription": [{"offsets": {from, to}, "text"}]}
 """
 import argparse
 import io
@@ -48,7 +47,7 @@ class Engine:
     def __init__(self, args):
         self.args = args
         self.model = WhisperModel(args.model, device='cpu', compute_type='int8', cpu_threads=args.threads)
-        self.lock = threading.Lock()  # um ditado por vez, como o whisper-server
+        self.lock = threading.Lock()  # um ditado por vez
 
     def run(self, audio, language=None, on_segment=None):
         lang = language or self.args.language
