@@ -826,6 +826,9 @@ $('#plugins-reload').addEventListener('click', async () => { await api.reloadPlu
 const OB_LAST = 4;
 let obStep = 0;
 let obFlavor = 'cpu';
+// A detecção (nvidia-smi) pode levar segundos: a recomendação só vale se a pessoa ainda não escolheu.
+let obFlavorTouched = false;
+let obHw = null;
 let obMic = null;
 
 function openOnboarding(step = 0) { $('#onboarding').hidden = false; goStep(step); }
@@ -837,29 +840,37 @@ function goStep(n) {
   $('#ob-back').style.visibility = n > 0 && n !== 2 ? 'visible' : 'hidden';
   $('#ob-next').textContent = n === 0 ? t('onboarding.comecar', {}, 'Começar') : n === OB_LAST ? t('js.finish', {}, 'Concluir') : n === 1 ? t('js.download', {}, 'Baixar') : t('js.continue', {}, 'Continuar');
   $('#ob-next').disabled = false;
-  if (n === 1) detectHw();
+  if (n === 1) { $('#ob-next').disabled = !obHw && !obFlavorTouched; detectHw(); }
   if (n === 2) runInstall();
   if (n !== 3) stopMicTest();
 }
 
+function paintFlavor() {
+  $$('#ob-flavor button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.value === obFlavor));
+}
+
 async function detectHw() {
-  const hw = await api.detectHardware();
+  const hw = obHw || (obHw = await api.detectHardware());
   $('#ob-hw').innerHTML = '';
   for (const [k, v] of [['CPU', hw.cpu], [t('js.memory', {}, 'Memória'), `${hw.ramGb} GB`], ['GPU', hw.gpu || t('js.no-nvidia', {}, 'nenhuma NVIDIA')]]) {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = v;
     $('#ob-hw').append(dt, dd);
   }
-  obFlavor = hw.recommendedFlavor;
+  if (!obFlavorTouched) obFlavor = hw.recommendedFlavor;
   $$('#ob-flavor button').forEach((b) => {
     $('.rec', b)?.remove();
     if (b.dataset.value === hw.recommendedFlavor) b.insertAdjacentHTML('beforeend', `<span class="rec">${t('js.recommended', {}, 'RECOMENDADO')}</span>`);
-    b.setAttribute('aria-pressed', b.dataset.value === obFlavor);
   });
+  paintFlavor();
+  if (obStep === 1) $('#ob-next').disabled = false;
 }
 $$('#ob-flavor button').forEach((b) => b.addEventListener('click', () => {
   obFlavor = b.dataset.value;
-  $$('#ob-flavor button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  obFlavorTouched = true;
+  paintFlavor();
+  if (obFlavor === 'cuda' && obHw && !obHw.gpu) toast(t('js.cuda-no-gpu', {}, 'Nenhuma placa NVIDIA detectada: o motor CUDA não vai funcionar neste PC.'));
+  if (obStep === 1) $('#ob-next').disabled = false;
 }));
 
 async function runInstall() {
@@ -872,9 +883,12 @@ async function runInstall() {
     $(`#ob-t-${stage}`).textContent = `${percent}%`;
     $('#ob-dl-status').textContent = `${stage === 'engine' ? 'whisper.cpp' : settings.model} · ${Math.round((totalMb * percent) / 100)} / ${totalMb} MB`;
   });
+  // Não salva engineFlavor antes: isso reiniciava o motor no meio da instalação (arquivos travados).
+  // O main grava flavor e modelo quando a instalação termina.
   try {
-    await saveSetting('engineFlavor', obFlavor);
     await api.installEngine({ flavor: obFlavor, model: settings.model });
+    settings = await api.getSettings();
+    bindSettings();
     $('#ob-dl-status').textContent = t('onboarding.pronto', {}, 'Pronto.');
     $('#ob-next').disabled = false;
   } catch (err) {

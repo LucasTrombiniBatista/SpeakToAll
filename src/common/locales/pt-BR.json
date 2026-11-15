@@ -216,6 +216,7 @@
   "js.vault-missing": "Esta pasta não existe mais. Escolha outra.",
   "js.engine-restart": "Motor será reiniciado",
   "js.mic-n": "Microfone {n}",
+  "js.cuda-no-gpu": "Nenhuma placa NVIDIA detectada: o motor CUDA não vai funcionar neste PC.",
   "js.press-key": "Pressione até 3 teclas",
   "js.hotkey-typing-alone": "{key} sozinha digitaria no app. Combine com Ctrl, Alt ou Shift.",
   "js.hotkey-typing": "Atenção: as teclas do atalho também são digitadas no app em foco.",

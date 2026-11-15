@@ -216,6 +216,7 @@
   "js.vault-missing": "This folder no longer exists. Choose another one.",
   "js.engine-restart": "Engine will restart",
   "js.mic-n": "Microphone {n}",
+  "js.cuda-no-gpu": "No NVIDIA card detected: the CUDA engine won't work on this PC.",
   "js.press-key": "Press up to 3 keys",
   "js.hotkey-typing-alone": "{key} alone would type into the app. Combine it with Ctrl, Alt or Shift.",
   "js.hotkey-typing": "Heads up: the shortcut keys are also typed into the focused app.",
