@@ -134,16 +134,35 @@ async function detectHardware() {
   return { cpu, ramGb, gpu, recommendedFlavor, recommendedModel };
 }
 
-// Downloads pela rede do Chromium (net.fetch): usa os certificados do Windows, então funciona com
-// antivírus/proxies que inspecionam HTTPS (o fetch do Node só confia na lista própria e falha com
-// SELF_SIGNED_CERT_IN_CHAIN). Fora do Electron (testes), cai no fetch do Node.
-function webFetch(url, opts) {
-  let net = null;
-  try { net = require('electron').net; } catch {}
-  return net?.fetch ? net.fetch(url, opts) : fetch(url, opts);
+// Antivírus e proxies que inspecionam HTTPS instalam a própria raiz no Windows; o fetch do Node só
+// confia na lista dele e falha com SELF_SIGNED_CERT_IN_CHAIN. Soma as raízes do Windows às padrão.
+// O net.fetch do Chromium já confia nelas, mas baixa ~50x mais devagar: fica só como reserva.
+let systemCaLoaded = false;
+function trustSystemCa() {
+  if (systemCaLoaded) return;
+  systemCaLoaded = true;
+  try {
+    const tls = require('tls');
+    if (tls.setDefaultCACertificates && tls.getCACertificates) {
+      tls.setDefaultCACertificates([...new Set([...tls.getCACertificates('default'), ...tls.getCACertificates('system')])]);
+    }
+  } catch (e) { console.warn('[engine] certificados do sistema', e.message); }
 }
 
-// Download com .part, progresso a cada 150 ms e cancelamento
+const CERT_ERRORS = /CERT|SELF_SIGNED|UNABLE_TO_(GET|VERIFY)/;
+async function webFetch(url, opts) {
+  trustSystemCa();
+  try {
+    return await fetch(url, opts);
+  } catch (e) {
+    let net = null;
+    try { net = require('electron').net; } catch {}
+    if (!net?.fetch || !CERT_ERRORS.test(e.cause?.code || '')) throw e;
+    console.warn('[engine] fetch do Node recusou o certificado; usando a rede do Chromium', url);
+    return net.fetch(url, opts);
+  }
+}
+
 // expectedMb: tamanho conhecido, usado quando o servidor não manda content-length (o net.fetch às vezes
 // não expõe), para a barra não ficar parada em 0%.
 async function download(url, dest, stage, onProgress, signal, expectedMb = 0) {
