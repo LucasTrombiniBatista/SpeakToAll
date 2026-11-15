@@ -144,12 +144,14 @@ function webFetch(url, opts) {
 }
 
 // Download com .part, progresso a cada 150 ms e cancelamento
-async function download(url, dest, stage, onProgress, signal) {
+// expectedMb: tamanho conhecido, usado quando o servidor não manda content-length (o net.fetch às vezes
+// não expõe), para a barra não ficar parada em 0%.
+async function download(url, dest, stage, onProgress, signal, expectedMb = 0) {
   const part = dest + '.part';
   try {
     const res = await webFetch(url, { signal, redirect: 'follow' });
     if (!res.ok) throw new Error(`HTTP ${res.status} em ${url}`);
-    const total = Number(res.headers.get('content-length')) || 0;
+    const total = Number(res.headers.get('content-length')) || expectedMb * 1048576;
     const totalMb = Math.round(total / 1048576);
     let got = 0, last = 0;
     const counter = new Transform({
@@ -158,7 +160,7 @@ async function download(url, dest, stage, onProgress, signal) {
         const now = Date.now();
         if (now - last >= 150) {
           last = now;
-          onProgress?.({ stage, percent: total ? Math.floor((got / total) * 100) : 0, totalMb });
+          onProgress?.({ stage, percent: total ? Math.min(99, Math.floor((got / total) * 100)) : 0, totalMb });
         }
         cb(null, chunk);
       },
@@ -199,7 +201,7 @@ async function installFwRuntime(onProgress, signal) {
     fs.copyFileSync(process.env.STA_FW_RUNTIME_ZIP, zip);
     onProgress?.({ stage: 'engine', percent: 100, totalMb: FW_RUNTIME_MB });
   } else {
-    await download(FW_RUNTIME_URL, zip, 'engine', onProgress, signal);
+    await download(FW_RUNTIME_URL, zip, 'engine', onProgress, signal, FW_RUNTIME_MB);
   }
   await expand(zip, paths.fw);
   fs.unlinkSync(zip);
@@ -221,7 +223,7 @@ async function installFwModel(model, onProgress, signal) {
   fs.mkdirSync(dir, { recursive: true });
   const url = (f) => `https://huggingface.co/${spec.repo}/resolve/main/${f}`;
   for (const f of files.filter((x) => x !== 'model.bin')) await download(url(f), path.join(dir, f), 'aux', null, signal);
-  await download(url('model.bin'), path.join(dir, 'model.bin'), 'model', onProgress, signal);
+  await download(url('model.bin'), path.join(dir, 'model.bin'), 'model', onProgress, signal, spec.sizeMb);
 }
 
 async function doInstall({ flavor = 'cpu', model, backend = 'native' }, onProgress) {
@@ -249,14 +251,14 @@ async function doInstall({ flavor = 'cpu', model, backend = 'native' }, onProgre
       clearBin();
       const z = ZIPS[flavor] || ZIPS.cpu;
       const zip = path.join(paths.bin, z.file);
-      await download(`https://github.com/ggml-org/whisper.cpp/releases/download/${VERSION}/${z.file}`, zip, 'engine', onProgress, signal);
+      await download(`https://github.com/ggml-org/whisper.cpp/releases/download/${VERSION}/${z.file}`, zip, 'engine', onProgress, signal, z.mb);
       await expand(zip, paths.bin);
       fs.unlinkSync(zip);
       if (!findExe('whisper-server.exe')) throw new Error('whisper-server.exe não encontrado no pacote');
       fs.writeFileSync(flavorFile(), flavor);
     }
     if (model && !fs.existsSync(modelPath(model))) {
-      await download(`https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model), 'model', onProgress, signal);
+      await download(`https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model), 'model', onProgress, signal, MODELS.find((m) => m.id === model)?.sizeMb);
     }
     current = { model, flavor, backend: 'native' };
     onProgress?.({ stage: 'starting', percent: 100 });
