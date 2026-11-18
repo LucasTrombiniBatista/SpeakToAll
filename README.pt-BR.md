@@ -20,7 +20,7 @@
 
 App desktop para Windows que transcreve sua voz **offline** e digita o resultado em qualquer programa. Segure uma tecla (padrão <kbd>F9</kbd>), fale, solte — o texto aparece onde o cursor estiver e fica salvo como nota.
 
-Stack: Electron + JavaScript puro como casca, reconhecimento de voz pelos binários do [whisper.cpp](https://github.com/ggml-org/whisper.cpp), injeção de texto pelo `SendInput` do Win32.
+Stack: Electron + JavaScript puro como casca, reconhecimento de voz pelo [faster-whisper](https://github.com/SYSTRAN/faster-whisper) num Python embutido, injeção de texto pelo `SendInput` do Win32.
 
 ## Funcionalidades
 
@@ -72,7 +72,7 @@ Segue o Windows ou fica fixo; a barra de título acompanha. Em Configurações �
 
 ## Instalar
 
-Baixe o `SpeakToAll Setup <versão>.exe` em [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). Requisitos: Windows 10/11 x64 e ~200 MB livres para motor + modelo `base` (até ~600 MB com `large-v3-turbo`).
+Baixe o `SpeakToAll Setup <versão>.exe` em [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). O app inicia com o Windows (na bandeja) por padrão; dá para desligar em Configurações. Requisitos: Windows 10/11 x64 e ~200 MB livres para motor + modelo `base` (até ~600 MB com `large-v3-turbo`).
 
 **Atualizações:** novas versões são baixadas em segundo plano. Quando ficam prontas aparece um aviso discreto; ao reiniciar (ou ao sair do app) a instalação acontece em silêncio, sem abrir o instalador de novo. Dá para desligar a verificação automática em Configurações.
 
@@ -85,7 +85,7 @@ npm install
 npm start
 ```
 
-Na primeira execução o assistente detecta o hardware e baixa o whisper.cpp e o modelo para `%APPDATA%\speaktoall`.
+Na primeira execução o assistente detecta o hardware e baixa o motor de voz e o modelo para `%APPDATA%\speaktoall`.
 
 Para ver só a interface no navegador (sem Electron, com dados falsos), abra `src/renderer/main/index.html`.
 
