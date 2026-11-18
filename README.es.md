@@ -20,7 +20,7 @@
 
 Aplicación de escritorio para Windows que transcribe tu voz **sin conexión** y escribe el resultado en cualquier programa. Mantén pulsada una tecla (<kbd>F9</kbd> por defecto), habla, suelta — el texto aparece donde esté el cursor y queda guardado como nota.
 
-Stack: Electron + JavaScript puro como base, reconocimiento de voz con los binarios de [whisper.cpp](https://github.com/ggml-org/whisper.cpp), inserción de texto con `SendInput` de Win32.
+Stack: Electron + JavaScript puro como base, reconocimiento de voz con [faster-whisper](https://github.com/SYSTRAN/faster-whisper) en un Python integrado, inserción de texto con `SendInput` de Win32.
 
 ## Funcionalidades
 
@@ -74,7 +74,7 @@ Sigue a Windows o queda fijo; la barra de título lo acompaña. En Configuració
 
 ## Instalar
 
-Descarga `SpeakToAll Setup <versión>.exe` en [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). Requisitos: Windows 10/11 x64 y ~200 MB libres para el motor + modelo `base` (hasta ~600 MB con `large-v3-turbo`).
+Descarga `SpeakToAll Setup <versión>.exe` en [Releases](https://github.com/LucasTrombiniBatista/SpeakToAll/releases/latest). La app se inicia con Windows (en la bandeja) por defecto; se puede desactivar en Configuración. Requisitos: Windows 10/11 x64 y ~200 MB libres para el motor + modelo `base` (hasta ~600 MB con `large-v3-turbo`).
 
 **Actualizaciones:** las nuevas versiones se descargan en segundo plano. Cuando están listas aparece un aviso discreto; al reiniciar (o al salir de la aplicación) la instalación ocurre en silencio, sin abrir el instalador de nuevo. La comprobación automática se puede desactivar en Configuración.
 
@@ -87,7 +87,7 @@ npm install
 npm start
 ```
 
-En la primera ejecución el asistente detecta el hardware y descarga whisper.cpp y el modelo en `%APPDATA%\speaktoall`.
+En la primera ejecución el asistente detecta el hardware y descarga el motor de voz y el modelo en `%APPDATA%\speaktoall`.
 
 Para ver solo la interfaz en el navegador (sin Electron, con datos falsos), abre `src/renderer/main/index.html`.
 
